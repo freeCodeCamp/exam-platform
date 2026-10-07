@@ -1,0 +1,259 @@
+# Komodo Resource Sync for the exam platform's single environment. Setup: deploy/README.md.
+#
+# Sync settings: this file on `main`, include_user_groups = true, include_variables = false.
+# Variables stay out of the sync: the deploy Action moves EXAM_PLATFORM_*_IMAGE on every deploy,
+# and secrets are created by hand in Komodo, so a sync would revert or blank them.
+#
+# Stacks run each app's compose.yaml from `main`, the file developers run locally, with IMAGE set
+# to a release digest. They only deploy when GitHub Actions runs the exam-platform-deploy Action:
+# `deploy = false`, no webhooks, no polling.
+
+[[stack]]
+name = "exam-platform-auth-api"
+description = "aAPI: candidate identity and the attempt path"
+tags = ["exam-platform"]
+[stack.config]
+server = "exam-platform"
+repo = "freeCodeCamp/exam-platform"
+branch = "main"
+run_directory = "apps/auth-api"
+file_paths = ["compose.yaml"]
+registry_provider = "registry.digitalocean.com"
+registry_account = "exam-platform"
+pre_deploy.command = "docker network inspect platform >/dev/null 2>&1 || docker network create platform"
+# Komodo pulls IMAGE first (auto_pull); --no-build stops compose falling back to building main.
+# --wait fails the deploy, and so triggers the Action's rollback, unless every container turns healthy.
+extra_args = ["--no-build", "--wait", "--wait-timeout", "120"]
+environment = """
+IMAGE=[[EXAM_PLATFORM_AUTH_API_IMAGE]]
+ENVIRONMENT=production
+SENTRY_DSN=[[EXAM_PLATFORM_AUTH_API_SENTRY_DSN]]
+"""
+
+[[stack]]
+name = "exam-platform-curriculum-api"
+description = "cAPI: sole holder of cDb credentials"
+tags = ["exam-platform"]
+[stack.config]
+server = "exam-platform"
+repo = "freeCodeCamp/exam-platform"
+branch = "main"
+run_directory = "apps/curriculum-api"
+file_paths = ["compose.yaml"]
+registry_provider = "registry.digitalocean.com"
+registry_account = "exam-platform"
+pre_deploy.command = "docker network inspect platform >/dev/null 2>&1 || docker network create platform"
+extra_args = ["--no-build", "--wait", "--wait-timeout", "120"]
+environment = """
+IMAGE=[[EXAM_PLATFORM_CURRICULUM_API_IMAGE]]
+ENVIRONMENT=production
+SENTRY_DSN=[[EXAM_PLATFORM_CURRICULUM_API_SENTRY_DSN]]
+"""
+
+[[stack]]
+name = "exam-platform-examiner-dashboard"
+description = "eDd: examiner authoring, review, promotion and moderation"
+tags = ["exam-platform"]
+[stack.config]
+server = "exam-platform"
+repo = "freeCodeCamp/exam-platform"
+branch = "main"
+run_directory = "apps/examiner-dashboard"
+file_paths = ["compose.yaml"]
+registry_provider = "registry.digitalocean.com"
+registry_account = "exam-platform"
+pre_deploy.command = "docker network inspect platform >/dev/null 2>&1 || docker network create platform"
+extra_args = ["--no-build", "--wait", "--wait-timeout", "120"]
+environment = """
+IMAGE=[[EXAM_PLATFORM_EXAMINER_DASHBOARD_IMAGE]]
+ENVIRONMENT=production
+SENTRY_DSN=[[EXAM_PLATFORM_EXAMINER_DASHBOARD_SENTRY_DSN]]
+"""
+
+[[stack]]
+name = "exam-platform-web-app"
+description = "wApp: candidate web app, static files behind Caddy"
+tags = ["exam-platform"]
+[stack.config]
+server = "exam-platform"
+repo = "freeCodeCamp/exam-platform"
+branch = "main"
+run_directory = "apps/web-app"
+file_paths = ["compose.yaml"]
+registry_provider = "registry.digitalocean.com"
+registry_account = "exam-platform"
+pre_deploy.command = "docker network inspect platform >/dev/null 2>&1 || docker network create platform"
+extra_args = ["--no-build", "--wait", "--wait-timeout", "120"]
+environment = """
+IMAGE=[[EXAM_PLATFORM_WEB_APP_IMAGE]]
+"""
+
+[[action]]
+name = "exam-platform-deploy"
+description = "Deploys an exam-platform app by image digest. Run by GitHub Actions (.github/workflows/deploy.yml)."
+tags = ["exam-platform"]
+[action.config]
+arguments = """
+APP=
+IMAGE=
+"""
+# Komodo interpolates variables into this script, so it must never contain two opening brackets in a row.
+file_contents = '''
+// Deploys one app by image digest. ARGS:
+//   APP    auth-api | curriculum-api | examiner-dashboard | web-app
+//   IMAGE  registry.digitalocean.com/<registry>/<APP>@sha256:<digest>, or `previous`
+// Variables per app, EXAM_PLATFORM_<APP>_:
+//   IMAGE           what the stack runs. Set before each deploy, so it may be unhealthy.
+//   IMAGE_HEALTHY   the last image a deploy confirmed healthy: the rollback target.
+//   IMAGE_PREVIOUS  the healthy image before it, for `previous`.
+// Only admins may write Variables. The Action user is one, so CI needs Execute on this Action only.
+// Komodo interpolates ARGS before the script runs: never echo them unvalidated.
+const APPS = ["auth-api", "curriculum-api", "examiner-dashboard", "web-app"];
+const app = String(ARGS.APP);
+if (!APPS.includes(app)) throw new Error(`APP must be one of ${APPS.join(", ")}`);
+
+const stack = `exam-platform-${app}`;
+const current = `EXAM_PLATFORM_${app.toUpperCase().replaceAll("-", "_")}_IMAGE`;
+const healthy = `${current}_HEALTHY`;
+const previous = `${current}_PREVIOUS`;
+// Komodo pulls the image, then compose waits up to 120s for healthy containers.
+const DEPLOY_SECONDS = 420;
+// How long a DeployStack request that errored may take to show up as an Update.
+const START_SECONDS = 30;
+
+const sleep = (seconds: number) => new Promise((resolve) => setTimeout(resolve, seconds * 1000));
+const describe = (err: unknown) => (err as { result?: { error?: string } })?.result?.error ?? String(err);
+
+// For reads and idempotent writes: rides out a Core restart or a dropped connection.
+async function retry<T>(what: string, call: () => Promise<T>): Promise<T> {
+  for (let attempt = 1; ; attempt++) {
+    try {
+      return await call();
+    } catch (err) {
+      if (attempt === 4) throw new Error(`${what} failed: ${describe(err)}`);
+      await sleep(2 ** attempt);
+    }
+  }
+}
+
+// Lists Variables rather than reading one: a failed read throws instead of passing for a missing Variable.
+async function variables(): Promise<Map<string, string>> {
+  const list = await retry("ListVariables", () => komodo.read("ListVariables", {}));
+  return new Map(list.map((v) => [v.name, v.value ?? ""]));
+}
+
+async function set(name: string, value: string) {
+  // Checks existence on every attempt: a create whose response was lost has still created it.
+  await retry(`Writing ${name}`, async () => {
+    if ((await komodo.read("ListVariables", {})).some((v) => v.name === name)) {
+      await komodo.write("UpdateVariableValue", { name, value });
+    } else {
+      const description = `Image for ${stack}. Written by the exam-platform-deploy Action.`;
+      await komodo.write("CreateVariable", { name, value, description });
+    }
+  });
+}
+
+const deploying = async () => (await komodo.read("GetStackActionState", { stack })).deploying;
+
+// The first DeployStack Update for the stack since `since`, if Core has created one.
+async function findDeploy(stackId: string, since: number): Promise<string | undefined> {
+  const query = { "target.type": "Stack", "target.id": stackId, operation: "DeployStack", start_ts: { $gte: since } };
+  return (await komodo.read("ListUpdates", { query })).updates.at(-1)?.id;
+}
+
+// Points the stack at `image` and deploys it. Settles on Komodo's record of the deploy, never on a
+// request's error: a request that failed may still have started it, and a poll that failed says
+// nothing about it. "unknown": the deploy did not finish in time, or its record could not be read.
+async function deploy(stackId: string, image: string): Promise<"healthy" | "failed" | "unknown"> {
+  await set(current, image);
+  const since = Date.now();
+  let id: string | undefined;
+  try {
+    id = (await komodo.execute("DeployStack", { stack }))._id?.$oid;
+  } catch (err) {
+    console.error(`DeployStack request failed, looking for the deploy: ${describe(err)}`);
+  }
+  const deadline = since + DEPLOY_SECONDS * 1000;
+  while (Date.now() < deadline) {
+    await sleep(3);
+    try {
+      id ??= await findDeploy(stackId, since);
+      if (!id) {
+        // Core creates the Update before it answers: none by now means the request never arrived.
+        if (Date.now() - since > START_SECONDS * 1000 && !(await deploying())) return "failed";
+        continue;
+      }
+      const update = await komodo.read("GetUpdate", { id });
+      if (update.status !== "Complete") continue;
+      for (const log of update.logs) {
+        if (!log.success) console.error(`${log.stage}:\n${log.stderr || log.stdout}`);
+      }
+      return update.success ? "healthy" : "failed";
+    } catch (err) {
+      console.error(`Polling the deploy of ${stack}: ${describe(err)}`);
+    }
+  }
+  return "unknown";
+}
+
+const vars = await variables();
+const requested = String(ARGS.IMAGE);
+const image = requested === "previous" ? vars.get(previous) : requested;
+if (requested === "previous" && !image) throw new Error(`No previous image recorded for ${stack}`);
+const digest = new RegExp(`^registry\\.digitalocean\\.com/[a-z0-9-]+/${app}@sha256:[0-9a-f]{64}$`);
+if (!image || !digest.test(image)) {
+  throw new Error(`IMAGE must be registry.digitalocean.com/<registry>/${app}@sha256:<digest>, or previous`);
+}
+const stackId = (await retry("GetStack", () => komodo.read("GetStack", { stack })))._id?.$oid;
+if (!stackId) throw new Error(`${stack} has no id`);
+if (await retry("GetStackActionState", deploying)) throw new Error(`${stack} is already deploying`);
+
+const restore = vars.get(healthy) || undefined;
+const outcome = await deploy(stackId, image);
+if (outcome === "healthy") {
+  try {
+    await set(healthy, image);
+    if (restore && restore !== image) await set(previous, restore);
+  } catch (err) {
+    throw new Error(`${stack} runs ${image}, but recording it failed: set ${healthy} by hand. ${err}`);
+  }
+  console.log(`${stack} runs ${image}`);
+} else if (outcome === "unknown") {
+  // Rolling back now could overlap a deploy still running, or undo one that succeeded.
+  throw new Error(`No result for the deploy of ${image} to ${stack}: not rolled back. Check the stack in Komodo.`);
+} else if (!restore || restore === image) {
+  throw new Error(`Deploy failed: ${stack} has no other healthy image to roll back to`);
+} else {
+  const restored = await deploy(stackId, restore);
+  throw new Error(
+    restored === "healthy"
+      ? `Deploy failed: ${stack} rolled back to ${restore}`
+      : `Deploy and rollback failed: ${stack} needs attention`,
+  );
+}
+'''
+
+# Every deploy pulls a new digest, so old images pile up. `docker image prune -a` keeps the images
+# that containers use; a rollback pulls its image from DOCR again.
+[[procedure]]
+name = "exam-platform-prune-images"
+description = "Removes Docker images that no container uses."
+tags = ["exam-platform"]
+[procedure.config]
+schedule = "Every Sunday at 03:00"
+schedule_timezone = "UTC"
+schedule_alert = false
+[[procedure.config.stage]]
+name = "Prune images"
+executions = [
+  { execution.type = "PruneImages", execution.params.server = "exam-platform" },
+]
+
+# Holds the service user whose API key GitHub Actions uses (KOMODO_API_KEY / KOMODO_API_SECRET).
+[[user_group]]
+name = "exam-platform-ci"
+users = ["exam-platform-ci"]
+permissions = [
+  { target.type = "Action", target.id = "exam-platform-deploy", level = "Execute" },
+]

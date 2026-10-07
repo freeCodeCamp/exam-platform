@@ -34,9 +34,11 @@ databases/
   | curriculum/
   | examiner/
   | moderation/
+deploy/ # the production Droplet: bootstrap.sh, Komodo + Caddy compose, Komodo Resource Sync
 docs/ # mdbook docs
 libs/ # Common across one or more applications
   | runtime/ # env config, tracing + Sentry, Axum serving + graceful shutdown, exit codes
+release-please/ # one release config and manifest per app
 ```
 
-Docker: build context is the repo root for every image. See each app's `compose.yaml`.
+Docker: build context is the repo root for every image. Each app's `compose.yaml` builds locally; Komodo deploys the same file with `IMAGE` set to a release digest. Releases and deploys: [`docs/releases.md`](docs/releases.md). Droplet: [`deploy/README.md`](deploy/README.md).
