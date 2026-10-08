@@ -3,3 +3,17 @@ title = "Exam Platform"
 authors = ["Shaun Hamilton"]
 language = "en"
 src = "docs"
+
+[build]
+create-missing = true
+
+[preprocessor]
+
+[preprocessor.mermaid]
+command = "mdbook-mermaid"
+
+[output]
+
+[output.html]
+site-url = "/exam-platform/"
+additional-js = ["docs/assets/mermaid.min.js", "docs/assets/mermaid-init.js"]
