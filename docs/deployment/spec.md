@@ -2,6 +2,8 @@
 
 This is the specification describing the deployment of the services. Currently, all services are deployed on a single Digital Ocean Droplet.
 
+TODO: unconsidered: coordinating breaking changes. perhaps a non-issue, provided all changes are backwards compatible - rolling migrations.
+
 ## Tooling
 
 - Caddy
@@ -9,6 +11,7 @@ This is the specification describing the deployment of the services. Currently, 
 - GitHub
 - Google Cloud
 - Komodo
+- release-please
 
 ### Caddy
 
@@ -59,3 +62,22 @@ TODO: redirect URIs
 ### Komodo
 
 Komodo manages the containers. Its own compose file lives in `deploy/`. It does **not** manage itself.
+
+Komodo handles rollbacks by going to the previous healthy image, or just with another GitOps deployment. There is a deploy "Action" in Komodo that is called through the deploy GHA calling a webhook with:
+
+- `APP` - name of app being deployed
+- `IMAGE` - registry URL or `previous`
+
+### release-please
+
+There is one release-please config per service. A change to that service creates a release PR. Upon merge, GHA builds the service image and pushes to DOCR.
+
+| Timing                                       | Result                                                                                                                                        |
+| -------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| Run 1 has not started its release-please job | Run 1 releases both. container gets a 2-entry matrix and builds each at its own sha (that app's release PR merge commit). Run 2 finds nothing |
+| before merge B                               | pending, refreshes the release PRs, and its matrix is empty.                                                                                  |
+| Run 1 already past release-please            | Run 1 releases A only. Run 2 waits, then releases B.                                                                                          |
+| Three or more merges                         | Run 2's waiting job is replaced by run 3, which releases whatever is still unreleased. Nothing is lost.                                       |
+
+A release always builds in the same run that created it. So, no release is orphaned and none is built twice. If a release-please step fails, the other apps' releases still build (`continue-on-error`),
+and the last step fails the job.
