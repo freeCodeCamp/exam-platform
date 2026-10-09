@@ -48,6 +48,14 @@ Komodo manages the container stacks.
 
 The images are built on GHA runners, and pushed to DOCR.
 
+- `docs.yml`
+  - on pushes to main where `docs/` changes, GH Pages deployment is made
+- `release-container.yml`
+  - builds then pushes the containers to DOCR, then calls `deploy.yml`
+- `release.yml`
+  - release-please pr action
+  - calls `release-container.yml`
+
 ### Google Cloud
 
 The Examiner Dashboard and Exam Platform apps use Google OAuth. These two clients need to be created in Google Cloud Console.
