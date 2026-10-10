@@ -37,7 +37,7 @@ on:
       app:
         description: App
         type: choice
-        options: [auth-api, curriculum-api, examiner-dashboard, web-app]
+        options: [auth-api, examiner-dashboard, web-app]
         required: true
       version:
         description: Released version, e.g. 0.1.0

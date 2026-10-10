@@ -31,12 +31,6 @@ jobs:
         with:
           config-file: release-please/auth-api.json
           manifest-file: release-please/auth-api.manifest.json
-      # - id: curriculum-api
-      #   uses: googleapis/release-please-action@45996ed1f6d02564a971a2fa1b5860e934307cf7 # v5.0.0
-      #   continue-on-error: true
-      #   with:
-      #     config-file: release-please/curriculum-api.json
-      #     manifest-file: release-please/curriculum-api.manifest.json
       - id: examiner-dashboard
         uses: googleapis/release-please-action@45996ed1f6d02564a971a2fa1b5860e934307cf7 # v5.0.0
         continue-on-error: true

@@ -10,7 +10,6 @@ bun run check                   # astro check / tsc -b in every Bun workspace me
 bun run build
 
 cargo run -p auth-api           # 13001
-cargo run -p curriculum-api     # 13002
 cargo run -p examiner-dashboard # 13003
 
 mdbook watch                    # docs
@@ -24,7 +23,6 @@ docker compose -f apps/auth-api/compose.yaml up --build
 ```
 apps/
   | auth-api/
-  | curriculum-api/
   | desktop-app/
   | examiner-dashboard/
   |   | client/

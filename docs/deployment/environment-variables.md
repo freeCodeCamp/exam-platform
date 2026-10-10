@@ -28,21 +28,6 @@ Questions
 - `IMAGE`
   - leave empty to build from source. Komodo sets on deploys.
 
-### `apps/curriculum-api`
-
-- `ENVIRONMENT`
-  - required
-- `SENTRY_DSN`
-  - required outside development
-- `SENTRY_TRACES_SAMPLE_RATE`
-- `RUST_LOG`
-- `CAPI_PORT`
-  - `13002`
-- `PLATFORM_NETWORK`
-  - `platform`
-- `IMAGE`
-  - leave empty to build from source. Komodo sets on deploys.
-
 ### `apps/examiner-dashboard`
 
 - `ENVIRONMENT`

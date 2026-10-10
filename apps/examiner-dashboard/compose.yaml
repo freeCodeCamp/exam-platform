@@ -1,6 +1,7 @@
 # Run from this directory: `docker compose up --build`. Build context is the repo root.
 services:
   examiner-dashboard:
+    image: ${IMAGE:-}
     build:
       context: ../..
       dockerfile: apps/examiner-dashboard/Dockerfile
