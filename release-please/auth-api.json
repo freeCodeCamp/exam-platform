@@ -12,7 +12,6 @@
       "exclude-paths": [
         ".github",
         ".vscode",
-        "apps/curriculum-api",
         "apps/desktop-app",
         "apps/examiner-dashboard",
         "apps/web-app",

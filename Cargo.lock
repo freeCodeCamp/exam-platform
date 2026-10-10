@@ -424,16 +424,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "curriculum-api"
-version = "0.1.0"
-dependencies = [
- "axum",
- "runtime",
- "tokio",
- "tracing",
-]
-
-[[package]]
 name = "debugid"
 version = "0.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
