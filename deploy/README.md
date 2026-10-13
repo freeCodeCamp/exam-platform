@@ -2,7 +2,7 @@
 
 <!-- TODO: Move to docs -->
 
-Production is one DigitalOcean Droplet. Komodo deploys the app stacks on it ([`docs/releases.md`](../docs/releases.md)). Komodo itself (MongoDB, Core, Periphery) and Caddy run beside them from [`compose.yaml`](compose.yaml), started by [`bootstrap.sh`](bootstrap.sh).
+Staging is one DigitalOcean Droplet. Komodo deploys the app stacks on it ([`docs/releases.md`](../docs/releases.md)). Komodo itself (MongoDB, Core, Periphery) and Caddy run beside them from [`compose.yaml`](compose.yaml), started by [`bootstrap.sh`](bootstrap.sh).
 
 |                                               |                                                                                                                        |
 | --------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |

@@ -11,6 +11,14 @@
 		respond "ok"
 	}
 
+	# Runtime config from the container env: one image serves every environment. No braces in
+	# the body: Caddy reads them as placeholders.
+	handle /config.js {
+		header Content-Type "text/javascript; charset=utf-8"
+		header Cache-Control no-store
+		respond `globalThis.AUTH_API_URL = "{$AUTH_API_URL}";`
+	}
+
 	handle {
 		root * /srv
 		encode zstd gzip

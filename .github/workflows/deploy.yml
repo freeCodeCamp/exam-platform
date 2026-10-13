@@ -14,7 +14,7 @@ on:
       image:
         type: string
         required: true
-    # Environment secrets of `production`. A caller must pass them by name: unpassed, they resolve
+    # Environment secrets of `staging`. A caller must pass them by name: unpassed, they resolve
     # to empty strings in this workflow.
     secrets:
       KOMODO_API_KEY:
@@ -42,11 +42,11 @@ jobs:
     permissions:
       contents: read
     # Required reviewers on this environment gate every deploy.
-    environment: production
+    environment: staging
     # Komodo fails a deploy that overlaps another on the same stack: one at a time per app. A newer
     # pending deploy supersedes an older pending one.
     concurrency:
-      group: deploy-production-${{ inputs.app }}
+      group: deploy-staging-${{ inputs.app }}
       cancel-in-progress: false
     defaults:
       run:

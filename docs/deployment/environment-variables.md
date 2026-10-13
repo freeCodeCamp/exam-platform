@@ -19,7 +19,7 @@ Questions
 
 | Name                        | Required            | Default         | Where Set                                            | Description                                                                          |
 | --------------------------- | ------------------- | --------------- | ---------------------------------------------------- | ------------------------------------------------------------------------------------ |
-| `ENVIRONMENT`               | yes                 |                 | `.env`, Komodo (`production`)                        | `development`, `staging` or `production`. Release images refuse to start without it. |
+| `ENVIRONMENT`               | yes                 |                 | `.env`, Komodo (`staging`)                           | `development`, `staging` or `production`. Release images refuse to start without it. |
 | `SENTRY_DSN`                | outside development | empty           | `.env`, Komodo (`EXAM_PLATFORM_AUTH_API_SENTRY_DSN`) | Sentry project DSN.                                                                  |
 | `SENTRY_TRACES_SAMPLE_RATE` | no                  | `0.2`           | `.env`                                               | Sentry trace sampling rate.                                                          |
 | `RUST_LOG`                  | no                  | `info`          | `.env`                                               | Filters what reaches stdout (development) and Sentry.                                |
@@ -32,7 +32,7 @@ Questions
 
 | Name                        | Required            | Default             | Where Set                                                      | Description                                                                                  |
 | --------------------------- | ------------------- | ------------------- | -------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
-| `ENVIRONMENT`               | yes                 |                     | `.env`, Komodo (`production`)                                  | `development`, `staging` or `production`.                                                    |
+| `ENVIRONMENT`               | yes                 |                     | `.env`, Komodo (`staging`)                                     | `development`, `staging` or `production`.                                                    |
 | `SENTRY_DSN`                | outside development | empty               | `.env`, Komodo (`EXAM_PLATFORM_EXAMINER_DASHBOARD_SENTRY_DSN`) | Sentry project DSN.                                                                          |
 | `SENTRY_TRACES_SAMPLE_RATE` | no                  | `0.2`               | `.env`                                                         | Sentry trace sampling rate.                                                                  |
 | `RUST_LOG`                  | no                  | `info`              | `.env`                                                         | Filters what reaches stdout (development) and Sentry.                                        |
@@ -46,7 +46,7 @@ Questions
 
 | Name                  | Required | Default                  | Where Set                                      | Description                                                                           |
 | --------------------- | -------- | ------------------------ | ---------------------------------------------- | ------------------------------------------------------------------------------------- |
-| `PUBLIC_AUTH_API_URL` | no       | `http://127.0.0.1:13001` | `.env`, GitHub var (release build arg)         | Build time. Auth API origin the browser calls. Validated as URL by `astro.config.ts`. |
+| `AUTH_API_URL`        | yes      | `http://127.0.0.1:13001` | `.env`, Komodo                                 | Runtime. Auth API origin the browser calls, served as `/config.js`. Default in dev only. |
 | `WAPP_PORT`           | no       | `13003`                  | `.env`                                         | Host port on `127.0.0.1`. Container always listens on `13003`.                        |
 | `PLATFORM_NETWORK`    | no       | `platform`               | `.env`                                         | Shared external Docker network name.                                                  |
 | `IMAGE`               | no       | empty                    | `.env`, Komodo (`EXAM_PLATFORM_WEB_APP_IMAGE`) | Release image to run. Empty builds from source. Komodo sets on deploys.               |
@@ -96,8 +96,7 @@ Per app, `EXAM_PLATFORM_<APP>_`, with `<APP>` one of `AUTH_API`, `EXAMINER_DASHB
 | Name                        | Required             | Default | Where Set                     | Description                                              |
 | --------------------------- | -------------------- | ------- | ----------------------------- | -------------------------------------------------------- |
 | `DOCR_REGISTRY`             | release              |         | GitHub var                    | DigitalOcean registry name.                              |
-| `PUBLIC_AUTH_API_URL`       | release of `web-app` |         | GitHub var                    | Build arg for the web-app image.                         |
-| `KOMODO_URL`                | deploy               |         | GitHub var (env `production`) | `https://<KOMODO_DOMAIN>`.                               |
+| `KOMODO_URL`                | deploy               |         | GitHub var (env `staging`)    | `https://<KOMODO_DOMAIN>`.                               |
 | `KOMODO_API_KEY`            | release, deploy      |         | GitHub secret                 | Komodo API key. Needs Execute on the deploy Action only. |
 | `KOMODO_API_SECRET`         | release, deploy      |         | GitHub secret                 | Komodo API secret.                                       |
 | `DIGITALOCEAN_ACCESS_TOKEN` | release              |         | GitHub secret                 | Registry login and `doctl`.                              |

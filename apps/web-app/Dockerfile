@@ -10,8 +10,6 @@ COPY apps/examiner-dashboard/client/package.json apps/examiner-dashboard/client/
 RUN --mount=type=cache,target=/root/.bun/install/cache \
     bun install --frozen-lockfile --filter web-app
 COPY apps/web-app apps/web-app
-# Public, so Astro inlines it into the static files: each image serves one aAPI origin.
-ARG PUBLIC_AUTH_API_URL=http://127.0.0.1:13001
 RUN bun --filter web-app build
 
 FROM caddy:2.11.7-alpine

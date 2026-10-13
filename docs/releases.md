@@ -19,7 +19,7 @@ Consider release service to perform smart releases - `rApp`
 
 1. Merges to `main` cause `release.yml` release-please PRs for affected applications.
 2. Merged release-please PRs call `release-container.yml` to build the apps, pushes them to the registry, and calls `deploy.yml`.
-3. `deploy.yml` awaits production GH environment approval, then tells Komodo to run deploy action.
+3. `deploy.yml` awaits staging GH environment approval, then tells Komodo to run deploy action.
 
 ## Rollback
 

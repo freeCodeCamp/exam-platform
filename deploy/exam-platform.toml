@@ -27,7 +27,7 @@ pre_deploy.command = "docker network inspect platform >/dev/null 2>&1 || docker 
 extra_args = ["--no-build", "--wait", "--wait-timeout", "120"]
 environment = """
 IMAGE=[[EXAM_PLATFORM_AUTH_API_IMAGE]]
-ENVIRONMENT=production
+ENVIRONMENT=staging
 SENTRY_DSN=[[EXAM_PLATFORM_AUTH_API_SENTRY_DSN]]
 """
 
@@ -47,7 +47,7 @@ pre_deploy.command = "docker network inspect platform >/dev/null 2>&1 || docker 
 extra_args = ["--no-build", "--wait", "--wait-timeout", "120"]
 environment = """
 IMAGE=[[EXAM_PLATFORM_EXAMINER_DASHBOARD_IMAGE]]
-ENVIRONMENT=production
+ENVIRONMENT=staging
 SENTRY_DSN=[[EXAM_PLATFORM_EXAMINER_DASHBOARD_SENTRY_DSN]]
 """
 
@@ -67,6 +67,7 @@ pre_deploy.command = "docker network inspect platform >/dev/null 2>&1 || docker 
 extra_args = ["--no-build", "--wait", "--wait-timeout", "120"]
 environment = """
 IMAGE=[[EXAM_PLATFORM_WEB_APP_IMAGE]]
+AUTH_API_URL=https://auth-api.freecodecamp.dev
 """
 
 [[action]]
