@@ -37,7 +37,7 @@ Questions
 - `SENTRY_TRACES_SAMPLE_RATE`
 - `RUST_LOG`
 - `EDD_PORT`
-  - `13003`
+  - `13002`
 - `PLATFORM_NETWORK`
   - `platform`
 - `IMAGE`
@@ -50,7 +50,7 @@ Questions
   - auth API origin the browser calls
   - `http://127.0.0.1:13001`
 - `WAPP_PORT`
-  - `13004`
+  - `13003`
 - `PLATFORM_NETWORK`
   - `platform`
 - `IMAGE`

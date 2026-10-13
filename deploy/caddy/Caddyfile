@@ -13,3 +13,7 @@
 {$EXAMINER_DASHBOARD_DOMAIN} {
 	reverse_proxy examiner-dashboard:13002
 }
+
+{$WEB_APP_DOMAIN} {
+	reverse_proxy web-app:13003
+}

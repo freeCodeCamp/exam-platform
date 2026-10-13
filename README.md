@@ -4,7 +4,7 @@
 
 ```bash
 bun i                           # root Bun workspace: web-app, examiner-dashboard/client, desktop-app
-bun run dev                     # web-app (13004) + examiner-dashboard client (13005)
+bun run dev                     # web-app (13003) + examiner-dashboard client (13005)
 bun run dev:desktop             # desktop-app via tauri dev
 bun run check                   # astro check / tsc -b in every Bun workspace member
 bun run build
