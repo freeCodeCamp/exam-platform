@@ -24,8 +24,16 @@ There is a main `deploy/Caddyfile` that is the VM entrypoint interpolating the d
   reverse_proxy core:9120
 }
 
+{$AUTH_API_DOMAIN} {
+  reverse_proxy auth-api:13001
+}
+
 {$EXAMINER_DASHBOARD_DOMAIN} {
-  reverse_proxy examiner-dashboard:13003
+  reverse_proxy examiner-dashboard:13002
+}
+
+{$WEB_APP_DOMAIN} {
+  reverse_proxy web-app:13003
 }
 ```
 
