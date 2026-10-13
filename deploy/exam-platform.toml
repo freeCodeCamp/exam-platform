@@ -14,7 +14,7 @@ description = "aAPI: candidate identity and the attempt path"
 tags = ["exam-platform"]
 [stack.config]
 server = "exam-platform"
-repo = "ShaunSHamilton/exam-platform"
+repo = "freeCodeCamp/exam-platform"
 branch = "main"
 run_directory = "apps/auth-api"
 file_paths = ["compose.yaml"]
@@ -23,7 +23,7 @@ registry_account = "exam-platform"
 pre_deploy.command = "docker network inspect platform >/dev/null 2>&1 || docker network create platform"
 # Komodo pulls IMAGE first (auto_pull); --no-build stops compose falling back to building main.
 # --wait fails the deploy, and so triggers the Action's rollback, unless every container turns healthy.
-# The wait timeout bounds the Action's DEPLOY_SECONDS, which bounds the deadline in deploy.yml.
+# The wait timeout bounds the Action's DEPLOY_SECONDS, which bounds the deadline in deploy/deploy.ts.
 extra_args = ["--no-build", "--wait", "--wait-timeout", "120"]
 environment = """
 IMAGE=[[EXAM_PLATFORM_AUTH_API_IMAGE]]
@@ -37,7 +37,7 @@ description = "eDd: examiner authoring, review, promotion and moderation"
 tags = ["exam-platform"]
 [stack.config]
 server = "exam-platform"
-repo = "ShaunSHamilton/exam-platform"
+repo = "freeCodeCamp/exam-platform"
 branch = "main"
 run_directory = "apps/examiner-dashboard"
 file_paths = ["compose.yaml"]
@@ -57,7 +57,7 @@ description = "wApp: candidate web app, static files behind Caddy"
 tags = ["exam-platform"]
 [stack.config]
 server = "exam-platform"
-repo = "ShaunSHamilton/exam-platform"
+repo = "freeCodeCamp/exam-platform"
 branch = "main"
 run_directory = "apps/web-app"
 file_paths = ["compose.yaml"]
@@ -98,7 +98,7 @@ const current = `EXAM_PLATFORM_${app.toUpperCase().replaceAll("-", "_")}_IMAGE`;
 const healthy = `${current}_HEALTHY`;
 const previous = `${current}_PREVIOUS`;
 // Komodo pulls the image, then compose waits up to 120s (the stacks' --wait-timeout) for healthy
-// containers. deploy.yml waits for a deploy and its rollback: keep its deadline above twice this.
+// containers. deploy.ts waits for a deploy and its rollback: keep its deadline above twice this.
 const DEPLOY_SECONDS = 420;
 // How long a DeployStack request that errored may take to show up as an Update.
 const START_SECONDS = 30;

@@ -5,7 +5,7 @@
 	persist_config off
 }
 
-:13004 {
+:13003 {
 	handle /healthz {
 		header Cache-Control no-store
 		respond "ok"

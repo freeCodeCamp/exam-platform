@@ -1,4 +1,3 @@
 [toolchain]
-# Not forcing for now. See Cargo.toml for msrv
-# channel = "1.99.0"
+channel = "stable"
 components = ["clippy", "rustfmt"]

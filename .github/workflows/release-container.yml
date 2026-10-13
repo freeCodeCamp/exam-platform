@@ -3,7 +3,7 @@ name: Release container
 # 1. Build at release commit
 # 2. Push to DOCR
 # 3. Record digest
-# 4. Call deploy - TODO
+# 4. Deploy that digest (deploy.yml)
 
 on:
   workflow_call:
@@ -27,10 +27,10 @@ on:
         description: DigitalOcean API token with registry read/write scope
         required: true
       KOMODO_API_KEY:
-        description: Passed through to deploy.yml; set in environment `staging`
+        description: Passed through to deploy.yml; set in environment `production`
         required: true
       KOMODO_API_SECRET:
-        description: Passed through to deploy.yml; set in environment `staging`
+        description: Passed through to deploy.yml; set in environment `production`
         required: true
   workflow_dispatch:
     inputs:
@@ -135,15 +135,15 @@ jobs:
           printf '\n**Image:** %s\n' "\`$IMAGE\`" >> "$notes"
           gh release edit "$TAG" --notes-file "$notes"
 
-  # TODO
-  # deploy:
-  #   name: Deploy
-  #   needs: image
-  #   permissions: {}
-  #   uses: $/.github/workflows/deploy.yml
-  #   with:
-  #     app: ${{ inputs.app }}
-  #     image: ${{ needs.image.outputs.image }}
-  #   secrets:
-  #     KOMODO_API_KEY: ${{ secrets.KOMODO_API_KEY }}
-  #     KOMODO_API_SECRET: ${{ secrets.KOMODO_API_SECRET }}
+  deploy:
+    name: Deploy
+    needs: image
+    permissions:
+      contents: read
+    uses: $/.github/workflows/deploy.yml
+    with:
+      app: ${{ inputs.app }}
+      image: ${{ needs.image.outputs.image }}
+    secrets:
+      KOMODO_API_KEY: ${{ secrets.KOMODO_API_KEY }}
+      KOMODO_API_SECRET: ${{ secrets.KOMODO_API_SECRET }}

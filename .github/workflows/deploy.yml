@@ -1,0 +1,70 @@
+name: Deploy
+
+# Runs Komodo's exam-platform-deploy Action (deploy/exam-platform.toml) through deploy/deploy.ts:
+# points the app's stack at one image digest, keeps the digest it replaces, and rolls back if
+# containers do not turn healthy. Called after each release (release-container.yml); dispatch by
+# hand to redeploy a release's image or roll back with `previous`.
+
+on:
+  workflow_call:
+    inputs:
+      app:
+        type: string
+        required: true
+      image:
+        type: string
+        required: true
+    # Environment secrets of `production`. A caller must pass them by name: unpassed, they resolve
+    # to empty strings in this workflow.
+    secrets:
+      KOMODO_API_KEY:
+        required: true
+      KOMODO_API_SECRET:
+        required: true
+  workflow_dispatch:
+    inputs:
+      app:
+        description: App
+        type: choice
+        options: [auth-api, examiner-dashboard, web-app]
+        required: true
+      image:
+        description: "`registry.digitalocean.com/<registry>/<app>@sha256:<digest>` from a release's notes, or `previous` to roll back"
+        type: string
+        required: true
+
+permissions: {}
+
+jobs:
+  deploy:
+    name: Deploy ${{ inputs.app }}
+    runs-on: ubuntu-slim
+    permissions:
+      contents: read
+    # Required reviewers on this environment gate every deploy.
+    environment: production
+    # Komodo fails a deploy that overlaps another on the same stack: one at a time per app. A newer
+    # pending deploy supersedes an older pending one.
+    concurrency:
+      group: deploy-production-${{ inputs.app }}
+      cancel-in-progress: false
+    defaults:
+      run:
+        working-directory: deploy
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          sparse-checkout: deploy
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: 1.4.2
+      - run: bun install --frozen-lockfile --production
+      - name: Deploy through Komodo
+        env:
+          APP: ${{ inputs.app }}
+          IMAGE: ${{ inputs.image }}
+          KOMODO_URL: ${{ vars.KOMODO_URL }}
+          KOMODO_API_KEY: ${{ secrets.KOMODO_API_KEY }}
+          KOMODO_API_SECRET: ${{ secrets.KOMODO_API_SECRET }}
+        run: bun run deploy.ts
