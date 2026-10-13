@@ -83,8 +83,9 @@ services:
     ports: ["80:80", "443:443", "443:443/udp"]
     environment:
       KOMODO_DOMAIN: ${KOMODO_DOMAIN}
-      EXAMINER_DASHBOARD_DOMAIN: ${EXAMINER_DASHBOARD_DOMAIN:?set in .env}
       AUTH_API_DOMAIN: ${AUTH_API_DOMAIN:?set in .env}
+      EXAMINER_DASHBOARD_DOMAIN: ${EXAMINER_DASHBOARD_DOMAIN:?set in .env}
+      WEB_APP_DOMAIN: ${WEB_APP_DOMAIN:?set in .env}
     volumes:
       # The directory, not the file: `git pull` replaces the file, and `caddy reload` must see it.
       - ./caddy:/etc/caddy:ro
