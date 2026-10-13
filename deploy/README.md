@@ -19,7 +19,7 @@ Both names resolve to the Droplet. Caddy ([`caddy/Caddyfile`](caddy/Caddyfile)) 
 | Host                                  | Upstream                                       | Over                                                       |
 | ------------------------------------- | ---------------------------------------------- | ---------------------------------------------------------- |
 | `exam-platform.freecodecamp.dev`      | `core:9120`, except `/ws/periphery` (404)      | the compose project's default network                      |
-| `examiner-dashboard.freecodecamp.dev` | `examiner-dashboard:13003`, its alias and port | network `platform`, which every app's `compose.yaml` joins |
+| `examiner-dashboard.freecodecamp.dev` | `examiner-dashboard:13002`, its alias and port | network `platform`, which every app's `compose.yaml` joins |
 
 Apps also bind `127.0.0.1:1300x` on the Droplet, for debugging over SSH. Only Caddy is public.
 

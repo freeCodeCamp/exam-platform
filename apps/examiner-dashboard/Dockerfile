@@ -33,7 +33,7 @@ RUN useradd --system --no-create-home --shell /usr/sbin/nologin app
 COPY --from=build /usr/local/bin/examiner-dashboard /usr/local/bin/examiner-dashboard
 COPY --from=client /src/apps/examiner-dashboard/client/dist /app/web
 USER app
-ENV LISTEN_ADDR=0.0.0.0:13003 RUST_LOG=info WEB_DIR=/app/web
-EXPOSE 13003
-HEALTHCHECK --interval=10s --timeout=5s --retries=5 CMD ["curl", "-fsS", "http://127.0.0.1:13003/healthz"]
+ENV LISTEN_ADDR=0.0.0.0:13002 RUST_LOG=info WEB_DIR=/app/web
+EXPOSE 13002
+HEALTHCHECK --interval=10s --timeout=5s --retries=5 CMD ["curl", "-fsS", "http://127.0.0.1:13002/healthz"]
 ENTRYPOINT ["examiner-dashboard"]

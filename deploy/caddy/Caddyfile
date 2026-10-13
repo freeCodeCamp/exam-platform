@@ -6,10 +6,10 @@
 	reverse_proxy core:9120
 }
 
-{$EXAMINER_DASHBOARD_DOMAIN} {
-	reverse_proxy examiner-dashboard:13003
+{$AUTH_API_DOMAIN} {
+	reverse_proxy auth-api:13001
 }
 
-{$AUTH_API_DOMAIN} {
-	reverse_proxy auth-api:13003
+{$EXAMINER_DASHBOARD_DOMAIN} {
+	reverse_proxy examiner-dashboard:13002
 }

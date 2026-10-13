@@ -10,7 +10,7 @@ bun run check                   # astro check / tsc -b in every Bun workspace me
 bun run build
 
 cargo run -p auth-api           # 13001
-cargo run -p examiner-dashboard # 13003
+cargo run -p examiner-dashboard # 13002
 
 mdbook watch                    # docs
 

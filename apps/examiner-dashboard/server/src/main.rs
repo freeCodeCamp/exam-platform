@@ -5,7 +5,7 @@ mod routes;
 use runtime::{Exit, ServerConfig};
 
 fn main() -> Exit {
-    let config = match ServerConfig::from_env("127.0.0.1:13003") {
+    let config = match ServerConfig::from_env("127.0.0.1:13002") {
         Ok(config) => config,
         Err(err) => {
             // Telemetry is not up yet: config decides where it goes.
