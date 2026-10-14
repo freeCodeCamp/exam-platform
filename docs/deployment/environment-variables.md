@@ -44,12 +44,12 @@ Questions
 
 ### `apps/web-app`
 
-| Name                  | Required | Default                  | Where Set                                      | Description                                                                           |
-| --------------------- | -------- | ------------------------ | ---------------------------------------------- | ------------------------------------------------------------------------------------- |
-| `AUTH_API_URL`        | yes      | `http://127.0.0.1:13001` | `.env`, Komodo                                 | Runtime. Auth API origin the browser calls, served as `/config.js`. Default in dev only. |
-| `WAPP_PORT`           | no       | `13003`                  | `.env`                                         | Host port on `127.0.0.1`. Container always listens on `13003`.                        |
-| `PLATFORM_NETWORK`    | no       | `platform`               | `.env`                                         | Shared external Docker network name.                                                  |
-| `IMAGE`               | no       | empty                    | `.env`, Komodo (`EXAM_PLATFORM_WEB_APP_IMAGE`) | Release image to run. Empty builds from source. Komodo sets on deploys.               |
+| Name               | Required | Default                  | Where Set                                      | Description                                                                              |
+| ------------------ | -------- | ------------------------ | ---------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| `AUTH_API_URL`     | yes      | `http://127.0.0.1:13001` | `.env`, Komodo                                 | Runtime. Auth API origin the browser calls, served as `/config.js`. Default in dev only. |
+| `WAPP_PORT`        | no       | `13003`                  | `.env`                                         | Host port on `127.0.0.1`. Container always listens on `13003`.                           |
+| `PLATFORM_NETWORK` | no       | `platform`               | `.env`                                         | Shared external Docker network name.                                                     |
+| `IMAGE`            | no       | empty                    | `.env`, Komodo (`EXAM_PLATFORM_WEB_APP_IMAGE`) | Release image to run. Empty builds from source. Komodo sets on deploys.                  |
 
 ### `apps/desktop-app`
 
@@ -76,8 +76,8 @@ Set in `deploy/.env` on the Droplet. `bootstrap.sh` copies `.env.example`, then 
 | `KOMODO_JWT_SECRET`           | yes      | generated                             | `deploy/.env` (bootstrap) | Signs login sessions. Rotating logs everyone out.               |
 | `KOMODO_WEBHOOK_SECRET`       | yes      | generated                             | `deploy/.env` (bootstrap) | Authenticates webhooks. None configured, but Core requires one. |
 | `KOMODO_GOOGLE_OAUTH_ENABLED` | no       | `false`                               | `deploy/.env`             | Enables Google login for Komodo.                                |
-| `KOMODO_GOOGLE_OAUTH_ID`      | no       | empty                                 | `deploy/.env`             | Google Cloud OAuth client ID. Set by hand.                      |
-| `KOMODO_GOOGLE_OAUTH_SECRET`  | no       | empty                                 | `deploy/.env`             | Google Cloud OAuth client secret. Set by hand.                  |
+| `KOMODO_GOOGLE_OAUTH_ID`      | no       | empty                                 | `deploy/.env`             | Google Cloud OAuth client ID. Set by hand, restart Core.        |
+| `KOMODO_GOOGLE_OAUTH_SECRET`  | no       | empty                                 | `deploy/.env`             | Google Cloud OAuth client secret. Set by hand, restart Core.    |
 
 ### Komodo variables
 
@@ -93,10 +93,11 @@ Per app, `EXAM_PLATFORM_<APP>_`, with `<APP>` one of `AUTH_API`, `EXAMINER_DASHB
 
 ### GitHub Actions
 
-| Name                        | Required             | Default | Where Set                     | Description                                              |
-| --------------------------- | -------------------- | ------- | ----------------------------- | -------------------------------------------------------- |
-| `DOCR_REGISTRY`             | release              |         | GitHub var                    | DigitalOcean registry name.                              |
-| `KOMODO_URL`                | deploy               |         | GitHub var (env `staging`)    | `https://<KOMODO_DOMAIN>`.                               |
-| `KOMODO_API_KEY`            | release, deploy      |         | GitHub secret                 | Komodo API key. Needs Execute on the deploy Action only. |
-| `KOMODO_API_SECRET`         | release, deploy      |         | GitHub secret                 | Komodo API secret.                                       |
-| `DIGITALOCEAN_ACCESS_TOKEN` | release              |         | GitHub secret                 | Registry login and `doctl`.                              |
+| Name                        | Required        | Default | Where Set                  | Description                                              |
+| --------------------------- | --------------- | ------- | -------------------------- | -------------------------------------------------------- |
+| `DOCR_REGISTRY`             | release         |         | GitHub var                 | DigitalOcean registry name.                              |
+| `KOMODO_URL`                | deploy          |         | GitHub var (env `staging`) | `https://<KOMODO_DOMAIN>`.                               |
+| `KOMODO_API_KEY`            | release, deploy |         | GitHub secret              | Komodo API key. Needs Execute on the deploy Action only. |
+| `KOMODO_API_SECRET`         | release, deploy |         | GitHub secret              | Komodo API secret.                                       |
+| `DIGITALOCEAN_USERNAME`     | release         |         | GitHub secret              | DigitalOcean access token email address.                 |
+| `DIGITALOCEAN_ACCESS_TOKEN` | release         |         | GitHub secret              | Registry login and `doctl`.                              |

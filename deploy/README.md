@@ -84,4 +84,4 @@ Do not:
 - Publish MongoDB, or port 9120 beyond `127.0.0.1`.
 - Remove the `/ws/periphery` block: no remote servers connect.
 
-Google login: set `KOMODO_GOOGLE_OAUTH_ENABLED=true`, `KOMODO_GOOGLE_OAUTH_ID` and `KOMODO_GOOGLE_OAUTH_SECRET` in `.env`, then `docker compose up -d core`. The Google Cloud OAuth client (web application) needs redirect URI `https://<KOMODO_DOMAIN>/auth/google/callback`. Sign-up stays closed, so users link Google to an account an admin created. GitHub or OIDC work the same way with `KOMODO_GITHUB_OAUTH_*` or `KOMODO_OIDC_*` on the core service.
+Google login: set `KOMODO_GOOGLE_OAUTH_ENABLED=true`, `KOMODO_GOOGLE_OAUTH_ID` and `KOMODO_GOOGLE_OAUTH_SECRET` in `.env`, then `docker compose up -d core`. The Komodo UI and API cannot set login providers. The Google Cloud OAuth client (web application) needs redirect URI `https://<KOMODO_DOMAIN>/auth/google/callback`. Sign-up stays closed, so users link Google to an account an admin created. GitHub or OIDC work the same way with `KOMODO_GITHUB_OAUTH_*` or `KOMODO_OIDC_*` on the core service.

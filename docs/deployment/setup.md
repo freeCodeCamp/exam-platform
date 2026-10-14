@@ -22,6 +22,30 @@ git clone https://github.com/freeCodeCamp/exam-platform.git /opt/exam-platform
 
 NOTE: `bootstrap.sh` needs to be re-run any time there is a change to the Caddyfile.
 
+## Google Login (Optional)
+
+Komodo reads login providers from Core's environment only - the Komodo UI and API cannot set them. `bootstrap.sh` leaves them empty and disabled.
+
+1. Google Cloud Console: create an OAuth client (web application) with redirect URI `https://exam-platform.freecodecamp.dev/auth/google/callback`.
+2. On the Droplet, set in `/opt/exam-platform/deploy/.env`:
+
+```bash
+KOMODO_GOOGLE_OAUTH_ENABLED=true
+KOMODO_GOOGLE_OAUTH_ID=<client_id>
+KOMODO_GOOGLE_OAUTH_SECRET=<client_secret>
+```
+
+3. Restart Core
+
+```bash
+cd /opt/exam-platform/deploy
+docker compose up -d core
+```
+
+NOTE: Re-running `bootstrap.sh` also applies it.
+
+Admin still needs to create users, because sign-up is closed. Once a user logs in with password, they can link their Google account.
+
 ## Komodo Log-In
 
 1. Open `https://exam-platform.freecodecamp.dev` and log in as `admin` with the password from `.env`. Change the password, then add a passkey or TOTP. Nobody can sign up: admins add users under Settings → Users, and each user adds 2FA at first login.
