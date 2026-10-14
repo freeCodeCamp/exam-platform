@@ -1,5 +1,6 @@
 import { defineConfig, loadEnv } from "vite";
 import react from "@vitejs/plugin-react";
+import tanstackRouter from "@tanstack/router-plugin/vite";
 
 const ENVIRONMENTS = ["development", "staging", "production"];
 
@@ -17,11 +18,21 @@ export default defineConfig(({ mode }) => {
     env.AUTH_API_URL ||
     (environment === "development" ? "http://127.0.0.1:13001" : "");
   if (!authApiUrl) {
-    throw new Error(`AUTH_API_URL is required when ENVIRONMENT=${environment}.`);
+    throw new Error(
+      `AUTH_API_URL is required when ENVIRONMENT=${environment}.`,
+    );
   }
 
   return {
-    plugins: [react()],
+    plugins: [
+      tanstackRouter({
+        target: "react",
+        routesDirectory: "./frontend/routes",
+        generatedRouteTree: "./frontend/routeTree.gen.ts",
+        autoCodeSplitting: true,
+      }),
+      react(),
+    ],
     build: { sourcemap: true },
     // Vite options tailored for Tauri development, applied in `tauri dev` or `tauri build`:
     // 1. do not obscure Rust errors
