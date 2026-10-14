@@ -17,3 +17,4 @@ command = "mdbook-mermaid"
 [output.html]
 site-url = "/exam-platform/"
 additional-js = ["docs/assets/mermaid.min.js", "docs/assets/mermaid-init.js"]
+additional-css = ["docs/theme/custom.css"]
