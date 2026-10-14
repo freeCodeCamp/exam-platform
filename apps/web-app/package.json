@@ -1,11 +1,12 @@
 {
   "name": "web-app",
   "private": true,
+  "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "astro dev --host 127.0.0.1 --port 13004",
+    "dev": "astro dev --host 127.0.0.1 --port 13003",
     "build": "astro check && astro build",
-    "preview": "astro preview --host 127.0.0.1 --port 13004",
+    "preview": "astro preview --host 127.0.0.1 --port 13003",
     "check": "astro check"
   },
   "dependencies": {

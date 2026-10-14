@@ -23,20 +23,6 @@ graph LR
   wApp["wApp"] -->|"One-time pairing code from dApp attempt, short-lived bearer session token; authZ scoped to paired attempt"| aAPI["aAPI"]
 ```
 
-## aAPI → cAPI
-
-```mermaid
-graph LR
-  aAPI["aAPI"] -->|"mTLS, client cert identifies aAPI; authZ read-only redacted content"| cAPI["cAPI"]
-```
-
-## eDd → cAPI
-
-```mermaid
-graph LR
-  eDd["eDd"] -->|"mTLS, client cert identifies eDd; authZ trigger fetch, fast-forward and promotion on behalf of examiner role"| cAPI["cAPI"]
-```
-
 ## aAPI → mDb
 
 ```mermaid
@@ -56,32 +42,4 @@ graph LR
 ```mermaid
 graph LR
   eDd["eDd"] -->|"eDd DB user; authZ full access, sole user"| eDb[("eDb")]
-```
-
-## eDd → Authoring clone
-
-```mermaid
-graph LR
-  eDd["eDd"] -->|"eDd Dolt user; authZ read/write authoring branches"| clone[("Authoring clone")]
-```
-
-## cAPI → cDb
-
-```mermaid
-graph LR
-  cAPI["cAPI"] -->|"cAPI Dolt user, sole cDb credential holder; authZ sole writer"| cDb[("cDb")]
-```
-
-## cDb → Authoring clone (fetch, driven by cAPI)
-
-```mermaid
-graph LR
-  cDb[("cDb")] -->|"TLS, remotesapi fetch-only user on clone; authZ read authored history"| clone[("Authoring clone")]
-```
-
-## Authoring clone → cDb (clone and schema pull)
-
-```mermaid
-graph LR
-  clone[("Authoring clone")] -->|"TLS, remotesapi read-only user on cDb; authZ clone and pull, no push"| cDb[("cDb")]
 ```

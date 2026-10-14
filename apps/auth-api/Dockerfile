@@ -1,11 +1,10 @@
 # syntax=docker/dockerfile:1
 # Build context: repo root (see compose.yaml). Every workspace member's manifest must be
 # present for cargo to load the workspace, so all members are copied.
-FROM rust:1.99.0-slim-trixie AS build
+FROM rust:1-slim-trixie AS build
 WORKDIR /src
 COPY Cargo.toml Cargo.lock ./
 COPY apps/auth-api apps/auth-api
-COPY apps/curriculum-api apps/curriculum-api
 COPY apps/examiner-dashboard/server apps/examiner-dashboard/server
 COPY libs libs
 RUN --mount=type=cache,target=/usr/local/cargo/registry \

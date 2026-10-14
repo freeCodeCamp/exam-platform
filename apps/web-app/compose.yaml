@@ -1,0 +1,18 @@
+services:
+  web-app:
+    image: ${IMAGE:-}
+    build:
+      context: ../..
+      dockerfile: apps/web-app/Dockerfile
+    environment:
+      # Served to the browser as /config.js (Caddyfile) at runtime, not baked in.
+      AUTH_API_URL: ${AUTH_API_URL:?set AUTH_API_URL to the aAPI origin the browser calls}
+    restart: unless-stopped
+    ports: ["127.0.0.1:${WAPP_PORT:-13003}:13003"]
+    networks:
+      platform:
+        aliases: [web-app]
+networks:
+  platform:
+    name: ${PLATFORM_NETWORK:-platform}
+    external: true

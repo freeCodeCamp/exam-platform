@@ -3,7 +3,7 @@ name: Release container
 # 1. Build at release commit
 # 2. Push to DOCR
 # 3. Record digest
-# 4. Call deploy - TODO
+# 4. Deploy that digest (deploy.yml)
 
 on:
   workflow_call:
@@ -37,7 +37,7 @@ on:
       app:
         description: App
         type: choice
-        options: [auth-api, curriculum-api, examiner-dashboard, web-app]
+        options: [auth-api, examiner-dashboard, web-app]
         required: true
       version:
         description: Released version, e.g. 0.1.0
@@ -69,16 +69,10 @@ jobs:
     steps:
       - name: Check configuration
         env:
-          APP: ${{ inputs.app }}
           DOCR_REGISTRY: ${{ vars.DOCR_REGISTRY }}
-          PUBLIC_AUTH_API_URL: ${{ vars.PUBLIC_AUTH_API_URL }}
         run: |
           if [[ -z $DOCR_REGISTRY ]]; then
             echo "::error::Set the DOCR_REGISTRY repository variable"
-            exit 1
-          fi
-          if [[ $APP == web-app && -z $PUBLIC_AUTH_API_URL ]]; then
-            echo "::error::Set the PUBLIC_AUTH_API_URL repository variable: web-app bakes it in"
             exit 1
           fi
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -111,7 +105,6 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          build-args: ${{ inputs.app == 'web-app' && format('PUBLIC_AUTH_API_URL={0}', vars.PUBLIC_AUTH_API_URL) || '' }}
           provenance: false
           cache-from: type=gha,scope=${{ inputs.app }}
           cache-to: type=gha,mode=max,scope=${{ inputs.app }}
@@ -135,15 +128,15 @@ jobs:
           printf '\n**Image:** %s\n' "\`$IMAGE\`" >> "$notes"
           gh release edit "$TAG" --notes-file "$notes"
 
-  # TODO
-  # deploy:
-  #   name: Deploy
-  #   needs: image
-  #   permissions: {}
-  #   uses: $/.github/workflows/deploy.yml
-  #   with:
-  #     app: ${{ inputs.app }}
-  #     image: ${{ needs.image.outputs.image }}
-  #   secrets:
-  #     KOMODO_API_KEY: ${{ secrets.KOMODO_API_KEY }}
-  #     KOMODO_API_SECRET: ${{ secrets.KOMODO_API_SECRET }}
+  deploy:
+    name: Deploy
+    needs: image
+    permissions:
+      contents: read
+    uses: $/.github/workflows/deploy.yml
+    with:
+      app: ${{ inputs.app }}
+      image: ${{ needs.image.outputs.image }}
+    secrets:
+      KOMODO_API_KEY: ${{ secrets.KOMODO_API_KEY }}
+      KOMODO_API_SECRET: ${{ secrets.KOMODO_API_SECRET }}

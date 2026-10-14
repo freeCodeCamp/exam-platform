@@ -13,7 +13,6 @@
         ".github",
         ".vscode",
         "apps/auth-api",
-        "apps/curriculum-api",
         "apps/desktop-app",
         "apps/web-app",
         "databases",

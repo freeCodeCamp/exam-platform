@@ -6,6 +6,7 @@
 - [Auth](./auth.md)
 - [Deployment](./deployment/README.md)
   - [Spec](./deployment/spec.md)
+  - [Setup](./deployment/setup.md)
   - [Environment Variables](./deployment/environment-variables.md)
 
 ---

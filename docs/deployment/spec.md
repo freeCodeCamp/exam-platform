@@ -24,8 +24,16 @@ There is a main `deploy/Caddyfile` that is the VM entrypoint interpolating the d
   reverse_proxy core:9120
 }
 
+{$AUTH_API_DOMAIN} {
+  reverse_proxy auth-api:13001
+}
+
 {$EXAMINER_DASHBOARD_DOMAIN} {
-  reverse_proxy examiner-dashboard:13003
+  reverse_proxy examiner-dashboard:13002
+}
+
+{$WEB_APP_DOMAIN} {
+  reverse_proxy web-app:13003
 }
 ```
 
@@ -87,5 +95,4 @@ There is one release-please config per service. A change to that service creates
 | Run 1 already past release-please            | Run 1 releases A only. Run 2 waits, then releases B.                                                                                          |
 | Three or more merges                         | Run 2's waiting job is replaced by run 3, which releases whatever is still unreleased. Nothing is lost.                                       |
 
-A release always builds in the same run that created it. So, no release is orphaned and none is built twice. If a release-please step fails, the other apps' releases still build (`continue-on-error`),
-and the last step fails the job.
+A release always builds in the same run that created it. So, no release is orphaned and none is built twice. If a release-please step fails, the other apps' releases still build (`continue-on-error`), and the last step fails the job.

@@ -3,12 +3,7 @@
 # builds never resolve Tauri or webkit dependencies.
 [workspace]
 resolver = "3"
-members = [
-  "apps/auth-api",
-  "apps/curriculum-api",
-  "apps/examiner-dashboard/server",
-  "libs/*",
-]
+members = ["apps/auth-api", "apps/examiner-dashboard/server", "libs/*"]
 exclude = ["apps/desktop-app"]
 
 [workspace.package]
