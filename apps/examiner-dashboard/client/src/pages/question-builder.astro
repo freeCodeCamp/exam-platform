@@ -1,0 +1,28 @@
+---
+import { getEntry } from "astro:content";
+const aQuestion = await getEntry("questions", "one");
+---
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Question builder</title>
+  </head>
+  <body>
+    <h1>Question builder</h1>
+    <pre>{ aQuestion?.data.passage}</pre>
+
+    {aQuestion?.data.questions.map(({ prompt, options }) => (
+      <>
+        <div> {prompt} </div>
+        <ol>
+          {" "}
+          {options.map((opt) => (
+            <li> {opt} </li>
+          ))}{" "}
+        </ol>
+      </>
+    ))}
+  </body>
+</html>

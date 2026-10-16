@@ -1,0 +1,41 @@
+- type: multiple-choice
+  title: Meals at the Hotel
+  id: one
+  level: A1
+  language: en
+  instructionLanguage: en
+  variantGroup: cefr-a1-r01-hotel-meal-times
+  menuLabel: Meals at the Hotel
+  tags: [reading, blueprint-four-skills, "theme:daily_life", "cefr:143"]
+  estimatedMinutes: 3
+  passage: |
+    THE PARK HOTEL
+
+    Meals in the restaurant:
+    Breakfast: 7:00 – 10:00
+    Lunch: 12:00 – 14:00
+    Dinner: 18:00 – 21:00
+    The restaurant is on the first floor.
+
+    Lucy, let's meet in the restaurant at noon for lunch. See you there!
+    Ella
+  questions:
+    - prompt: "When can you have breakfast?"
+      options: ["from 7:00 to 10:00", "from 12:00 to 14:00", "from 18:00 to 21:00", "at midnight"]
+      correct: 0
+    - prompt: "Where is the restaurant?"
+      options: ["on the first floor", "in the park", "in Lucy's room", "next to the hotel"]
+      correct: 0
+    - prompt: "What time do Ella and Lucy meet?"
+      options: ["at 12:00", "at 7:00", "at 18:00", "at 21:00"]
+      correct: 0
+    - prompt: "Lucy gets up late. It is 10:30. Can she have breakfast in the restaurant?"
+      options:
+        ["No, it is too late.", "Yes, at the hotel.", "Yes, at noon.", "No, it is dinner time."]
+      correct: 0
+  teacherNotes: >
+    Questions 1, 2 and 4 read basic hotel information, meal times and where to eat (CEFR 143). Question 3 reads
+    a plan to meet ("let's meet ... at noon"), so the candidate understands an arrangement but does not make one;
+    I did not tag it as production evidence. It is A1 and not below because the candidate has to match "noon" to
+    12:00 and check 10:30 against the breakfast times, not just find a word that repeats. The note has no picture,
+    so 205 is not tagged.
