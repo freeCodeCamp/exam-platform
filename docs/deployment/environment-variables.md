@@ -30,17 +30,24 @@ Questions
 
 ### `apps/examiner-dashboard`
 
-| Name                        | Required            | Default             | Where Set                                                      | Description                                                                                  |
-| --------------------------- | ------------------- | ------------------- | -------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
-| `ENVIRONMENT`               | yes                 |                     | `.env`, Komodo (`staging`)                                     | `development`, `staging` or `production`.                                                    |
-| `SENTRY_DSN`                | outside development | empty               | `.env`, Komodo (`EXAM_PLATFORM_EXAMINER_DASHBOARD_SENTRY_DSN`) | Sentry project DSN.                                                                          |
-| `SENTRY_TRACES_SAMPLE_RATE` | no                  | `0.2`               | `.env`                                                         | Sentry trace sampling rate.                                                                  |
-| `RUST_LOG`                  | no                  | `info`              | `.env`                                                         | Filters what reaches stdout (development) and Sentry.                                        |
-| `EDD_PORT`                  | no                  | `13002`             | `.env`                                                         | Host port on `127.0.0.1`. Container always listens on `13002`.                               |
-| `LISTEN_ADDR`               | no                  | `0.0.0.0:13002`     | `compose.yaml`, `Dockerfile`                                   | Bind address. Do not change: baked into image.                                               |
-| `WEB_DIR`                   | release builds      | `/app/web` in image | `compose.yaml`, `Dockerfile`                                   | Built client directory (`client/dist`). Must contain `index.html`. Optional in debug builds. |
-| `PLATFORM_NETWORK`          | no                  | `platform`          | `.env`                                                         | Shared external Docker network name.                                                         |
-| `IMAGE`                     | no                  | empty               | `.env`, Komodo (`EXAM_PLATFORM_EXAMINER_DASHBOARD_IMAGE`)      | Release image to run. Empty builds from source. Komodo sets on deploys.                      |
+| Name                        | Required                   | Default                              | Where Set                                                      | Description                                                                                                                                          |
+| --------------------------- | -------------------------- | ------------------------------------ | -------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ENVIRONMENT`               | yes                        |                                      | `.env`, Komodo (`staging`)                                     | `development`, `staging` or `production`.                                                                                                            |
+| `SENTRY_DSN`                | outside development        | empty                                | `.env`, Komodo (`EXAM_PLATFORM_EXAMINER_DASHBOARD_SENTRY_DSN`) | Sentry project DSN.                                                                                                                                  |
+| `SENTRY_TRACES_SAMPLE_RATE` | no                         | `0.2`                                | `.env`                                                         | Sentry trace sampling rate.                                                                                                                          |
+| `RUST_LOG`                  | no                         | `info`                               | `.env`                                                         | Filters what reaches stdout (development) and Sentry.                                                                                                |
+| `EDD_PORT`                  | no                         | `13002`                              | `.env`                                                         | Host port on `127.0.0.1`. Container always listens on `13002`.                                                                                       |
+| `LISTEN_ADDR`               | no                         | `0.0.0.0:13002`                      | `compose.yaml`, `Dockerfile`                                   | Bind address. Do not change: baked into image.                                                                                                       |
+| `WEB_DIR`                   | no                         | `dist` natively; `/app/web` in image | Process environment, `compose.yaml`, `Dockerfile`              | Static directory relative to working directory. Client builds to `client/dist`; set that path for native serving. No startup check for `index.html`. |
+| `GOOGLE_OAUTH_ID`           | unless mock defaults apply | none                                 | Process environment, `.env` for Compose, Komodo                | Google OAuth web client ID; must not be empty.                                                                                                       |
+| `GOOGLE_OAUTH_SECRET`       | unless mock defaults apply | none                                 | Process environment, `.env` for Compose, Komodo                | OAuth client secret; must not be empty.                                                                                                              |
+| `GOOGLE_REDIRECT_URL`       | unless mock defaults apply | none                                 | Process environment, `.env` for Compose, Komodo                | Valid callback URL registered in Google Cloud: public HTTPS origin plus `/auth/google/callback`.                                                     |
+| `COOKIE_KEY`                | unless mock defaults apply | none                                 | Process environment, `.env` for Compose, Komodo                | Private-cookie key, at least 64 bytes. Generate with `openssl rand -hex 64`; keep secret and stable. Rotation invalidates cookies.                   |
+| `MOCK_AUTH`                 | no                         | `false`                              | Process environment                                            | Debug-only mock auth. Release builds reject `true`; Compose does not forward it. Defaults for OAuth/key fields apply only when unset, not empty.     |
+| `PLATFORM_NETWORK`          | no                         | `platform`                           | `.env`                                                         | Shared external Docker network name.                                                                                                                 |
+| `IMAGE`                     | no                         | empty                                | `.env`, Komodo (`EXAM_PLATFORM_EXAMINER_DASHBOARD_IMAGE`)      | Release image to run. Empty builds from source. Komodo sets on deploys.                                                                              |
+
+Native dashboard execution needs exported environment variables; copying `.env` alone does not load them. See [dashboard setup](../../apps/examiner-dashboard/README.md#setup). Mock mode defaults to test credentials/key and `http://127.0.0.1:13002/auth/google/callback`. Persistence remains stubbed for both real and mock auth.
 
 ### `apps/web-app`
 
@@ -90,6 +97,15 @@ Per app, `EXAM_PLATFORM_<APP>_`, with `<APP>` one of `AUTH_API`, `EXAMINER_DASHB
 | `EXAM_PLATFORM_<APP>_IMAGE_PREVIOUS`          | no       |         | Komodo, written by deploy Action | Healthy image before that. Target for `previous`.                  |
 | `EXAM_PLATFORM_AUTH_API_SENTRY_DSN`           | yes      |         | Komodo                           | Passed to auth-api as `SENTRY_DSN`.                                |
 | `EXAM_PLATFORM_EXAMINER_DASHBOARD_SENTRY_DSN` | yes      |         | Komodo                           | Passed to examiner-dashboard as `SENTRY_DSN`.                      |
+
+Dashboard also requires these Komodo Variables (no defaults):
+
+| Name                                                   | Description                                           |
+| ------------------------------------------------------ | ----------------------------------------------------- |
+| `EXAM_PLATFORM_EXAMINER_DASHBOARD_GOOGLE_OAUTH_ID`     | Passed as `GOOGLE_OAUTH_ID`.                          |
+| `EXAM_PLATFORM_EXAMINER_DASHBOARD_GOOGLE_OAUTH_SECRET` | Secret; passed as `GOOGLE_OAUTH_SECRET`.              |
+| `EXAM_PLATFORM_EXAMINER_DASHBOARD_GOOGLE_REDIRECT_URL` | Registered callback; passed as `GOOGLE_REDIRECT_URL`. |
+| `EXAM_PLATFORM_EXAMINER_DASHBOARD_COOKIE_KEY`          | Secret; passed as `COOKIE_KEY`.                       |
 
 ### GitHub Actions
 

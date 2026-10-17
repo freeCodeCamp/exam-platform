@@ -3,7 +3,7 @@
 # builds never resolve Tauri or webkit dependencies.
 [workspace]
 resolver = "3"
-members = ["apps/auth-api", "apps/examiner-dashboard/server", "libs/*"]
+members = ["apps/auth-api", "apps/examiner-dashboard", "libs/*"]
 exclude = ["apps/desktop-app"]
 
 [workspace.package]
@@ -12,8 +12,10 @@ rust-version = "1.95"
 publish = false
 
 [workspace.dependencies]
-axum = "0.8.9"
-tokio = { version = "1.53.2", features = ["full"] }
+axum = "0.8"
+axum-extra = { version = "0.12", features = ["cookie-private", "typed-header"] }
+http = "1"
+tokio = { version = "1.53", features = ["full"] }
 tracing = "0.1.44"
 tracing-subscriber = { version = "0.3.23", features = ["env-filter"] }
 tower-http = { version = "0.7.1", features = ["trace"] }
@@ -24,12 +26,19 @@ sentry = { version = "0.49.3", default-features = false, features = [
   "contexts",
   "debug-images",
   "logs",
+  "metrics",
   "panic",
   "release-health",
   "reqwest",
   "rustls",
   "tracing",
 ] }
+thiserror = "2"
+oauth2 = { version = "5.0.0", default-features = false }
+serde = { version = "1.0.229", features = ["derive"] }
+time = "0.3.55"
+url = "2.5.8"
+tower-sessions = "0.15"
 runtime = { path = "libs/runtime" }
 
 [workspace.lints.clippy]
