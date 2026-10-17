@@ -18,12 +18,12 @@ FROM rust:1-slim-trixie AS build
 WORKDIR /src
 COPY Cargo.toml Cargo.lock ./
 COPY apps/auth-api apps/auth-api
-COPY apps/examiner-dashboard/server apps/examiner-dashboard/server
+COPY apps/examiner-dashboard apps/examiner-dashboard
 COPY libs libs
 RUN --mount=type=cache,target=/usr/local/cargo/registry \
     --mount=type=cache,target=/src/target \
     cargo build --locked --release -p examiner-dashboard \
-    && cp target/release/examiner-dashboard /usr/local/bin/examiner-dashboard
+    && cp target/release/server /usr/local/bin/examiner-dashboard
 
 FROM debian:trixie-slim
 RUN apt-get update \

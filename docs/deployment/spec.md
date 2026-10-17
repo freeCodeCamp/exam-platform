@@ -17,10 +17,11 @@ TODO: unconsidered: coordinating breaking changes. perhaps a non-issue, provided
 
 As public services are all hosted on the same VM, Caddy handles routing requests from the various domains to the service ports. The domains are DNS-only, A records registered on Cloudflare, all pointing at the public IP of the VM.
 
-There is a main `deploy/Caddyfile` that is the VM entrypoint interpolating the domains, and reverse-proxying to the LAN ports:
+The main [`deploy/caddy/Caddyfile`](../../deploy/caddy/Caddyfile) is the VM entrypoint, interpolating domains and reverse-proxying to container aliases and ports:
 
 ```caddyfile
 {$KOMODO_DOMAIN} {
+  respond /ws/periphery 404
   reverse_proxy core:9120
 }
 
@@ -38,8 +39,6 @@ There is a main `deploy/Caddyfile` that is the VM entrypoint interpolating the d
 ```
 
 All public apps need to be added to this config. The interpolated values come from `deploy/.env`.
-
-TODO: Add actual caddyfile path/ref.
 
 #### Notes
 
@@ -68,7 +67,7 @@ The images are built on GHA runners, and pushed to DOCR.
 
 The Examiner Dashboard and Exam Platform apps use Google OAuth. These two clients need to be created in Google Cloud Console.
 
-TODO: redirect URIs
+Dashboard callback: `https://examiner-dashboard.freecodecamp.dev/auth/google/callback`. Optional Komodo callback: `https://exam-platform.freecodecamp.dev/auth/google/callback`. Substitute configured domains; register each URI exactly. See [setup](setup.md#examiner-dashboard-oauth) for required dashboard variables.
 
 #### Notes
 

@@ -8,25 +8,29 @@ Staging is one DigitalOcean Droplet. Komodo deploys the app stacks on it ([`docs
 | --------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
 | `https://exam-platform.freecodecamp.dev`      | Komodo: the UI, behind login and 2FA, and the API `deploy.yml` calls                                                   |
 | `https://examiner-dashboard.freecodecamp.dev` | eDd                                                                                                                    |
+| `https://auth-api.freecodecamp.dev`           | aAPI                                                                                                                   |
+| `https://web-app.freecodecamp.dev`            | wApp                                                                                                                   |
 | Resources                                     | [`exam-platform.toml`](exam-platform.toml), a Resource Sync: stacks, deploy Action, prune Procedure, CI user group     |
 | Server                                        | `exam-platform`: the Periphery in this compose project. It connects to Core with keys from the shared `keys` volume    |
 | On disk                                       | Repository and `deploy/.env` in `/opt/exam-platform`, stacks in `/etc/komodo/stacks`, backups in `/etc/komodo/backups` |
 
 ## Routing
 
-Both names resolve to the Droplet. Caddy ([`caddy/Caddyfile`](caddy/Caddyfile)) holds a certificate for each, redirects HTTP to HTTPS, and picks the upstream by host name:
+All names resolve to the Droplet. Caddy ([`caddy/Caddyfile`](caddy/Caddyfile)) holds a certificate for each, redirects HTTP to HTTPS, and picks the upstream by host name:
 
 | Host                                  | Upstream                                       | Over                                                       |
 | ------------------------------------- | ---------------------------------------------- | ---------------------------------------------------------- |
 | `exam-platform.freecodecamp.dev`      | `core:9120`, except `/ws/periphery` (404)      | the compose project's default network                      |
 | `examiner-dashboard.freecodecamp.dev` | `examiner-dashboard:13002`, its alias and port | network `platform`, which every app's `compose.yaml` joins |
+| `auth-api.freecodecamp.dev`           | `auth-api:13001`                               | network `platform`                                         |
+| `web-app.freecodecamp.dev`            | `web-app:13003`                                | network `platform`                                         |
 
 Apps also bind `127.0.0.1:1300x` on the Droplet, for debugging over SSH. Only Caddy is public.
 
-To make another app public, e.g. aAPI:
+To make another app public (aAPI and wApp are already configured):
 
-1. Add `AUTH_API_DOMAIN=…` to `.env.example`, and pass it in the caddy service's `environment` in `compose.yaml`.
-2. Add a site block to `caddy/Caddyfile`: `{$AUTH_API_DOMAIN} { reverse_proxy auth-api:13001 }`.
+1. Add its domain variable to `.env.example`, and pass it in the caddy service's `environment` in `compose.yaml`.
+2. Add a site block to `caddy/Caddyfile` using that variable and the app's `platform` network alias and container port.
 3. Create the DNS record, merge, then re-run `bootstrap.sh`: it adds the new key to `.env` and reloads Caddy.
 
 ## Maintain
