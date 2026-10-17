@@ -9,6 +9,8 @@
   - [Setup](./deployment/setup.md)
   - [Environment Variables](./deployment/environment-variables.md)
 - [Releases](./releases.md)
+- [Conventions](./conventions/README.md)
+  - [Rust](./conventions/rust.md)
 
 ---
 

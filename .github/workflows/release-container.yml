@@ -23,6 +23,9 @@ on:
         type: string
         required: true
     secrets:
+      DIGITALOCEAN_USERNAME:
+        description: DigitalOcean account email for registry login
+        required: true
       DIGITALOCEAN_ACCESS_TOKEN:
         description: DigitalOcean API token with registry read/write scope
         required: true

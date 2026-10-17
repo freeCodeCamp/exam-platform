@@ -14,6 +14,10 @@ services:
       SENTRY_TRACES_SAMPLE_RATE: ${SENTRY_TRACES_SAMPLE_RATE:-0.2}
       RUST_LOG: ${RUST_LOG:-info}
       WEB_DIR: /app/web
+      GOOGLE_OAUTH_ID: ${GOOGLE_OAUTH_ID:?set GOOGLE_OAUTH_ID}
+      GOOGLE_OAUTH_SECRET: ${GOOGLE_OAUTH_SECRET:?set GOOGLE_OAUTH_SECRET}
+      GOOGLE_REDIRECT_URL: ${GOOGLE_REDIRECT_URL:?set GOOGLE_REDIRECT_URL}
+      COOKIE_KEY: ${COOKIE_KEY:?set COOKIE_KEY to at least 64 random bytes}
     networks:
       platform:
         aliases: [examiner-dashboard]

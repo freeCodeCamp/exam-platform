@@ -92,6 +92,7 @@ jobs:
       tag: ${{ matrix.release.tag }}
       sha: ${{ matrix.release.sha }}
     secrets:
+      DIGITALOCEAN_USERNAME: ${{ secrets.DIGITALOCEAN_USERNAME }}
       DIGITALOCEAN_ACCESS_TOKEN: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
       # Environment secrets of `staging`, by name: deploy.yml reads them only if passed.
       KOMODO_API_KEY: ${{ secrets.KOMODO_API_KEY }}

@@ -123,3 +123,9 @@ async fn shutdown_signal() {
         () = terminate => info!("received SIGTERM, shutting down"),
     }
 }
+
+impl From<ConfigError> for Exit {
+    fn from(_value: ConfigError) -> Self {
+        Exit::Config
+    }
+}
