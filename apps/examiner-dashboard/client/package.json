@@ -5,12 +5,14 @@
   "scripts": {
     "dev": "astro dev --host 127.0.0.1 --port 13005",
     "build": "astro check && astro build",
-    "check": "astro check"
+    "check": "astro check",
+    "fmt": "oxfmt"
   },
   "dependencies": {
     "@astrojs/react": "catalog:astro",
     "@tanstack/react-query": "catalog:",
     "astro": "catalog:astro",
+    "oxfmt": "catalog:",
     "react": "catalog:",
     "react-dom": "catalog:"
   },
