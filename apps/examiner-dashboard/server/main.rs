@@ -10,7 +10,10 @@ use runtime::{Exit, ServerConfig};
 fn main() -> Exit {
     let server_config = match ServerConfig::from_env("127.0.0.1:13002") {
         Ok(c) => c,
-        Err(e) => return e.into(),
+        Err(e) => {
+            eprintln!("{e}");
+            return e.into();
+        }
     };
 
     // Before the Tokio runtime starts, so every worker thread inherits the Sentry hub.
