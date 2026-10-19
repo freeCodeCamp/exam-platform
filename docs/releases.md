@@ -11,7 +11,7 @@ Consider release service to perform smart releases - `rApp`
 | App                  | Ships as                                                     | Version files release-please bumps                            |
 | -------------------- | ------------------------------------------------------------ | ------------------------------------------------------------- |
 | `auth-api`           | Image → Komodo stack `exam-platform-auth-api`                | `Cargo.toml`, root `Cargo.lock`                               |
-| `examiner-dashboard` | Image (client + server) → `exam-platform-examiner-dashboard` | `server/Cargo.toml`, `client/package.json`, root `Cargo.lock` |
+| `examiner-dashboard` | Image (client + server) → `exam-platform-examiner-dashboard` | `Cargo.toml`, `client/package.json`, root `Cargo.lock` |
 | `web-app`            | Image (Caddy serving `dist/`) → `exam-platform-web-app`      | `package.json`                                                |
 | `desktop-app`        | Tauri bundles: the release job is a stub                     | `package.json`, `backend/Cargo.toml`, `Cargo.lock`            |
 

@@ -1,6 +1,6 @@
 {
   "extends": "astro/tsconfigs/strict",
-  "include": [".astro/types.d.ts", "**/*"],
+  "include": [".astro/types.d.ts", "astro.config.ts", "client/**/*"],
   "exclude": ["dist"],
   "compilerOptions": {
     "jsx": "react-jsx",
@@ -8,7 +8,7 @@
     "noUncheckedIndexedAccess": true,
     "types": ["bun"],
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./client/src/*"]
     }
   }
 }

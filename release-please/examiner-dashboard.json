@@ -23,7 +23,7 @@
       "extra-files": [
         {
           "type": "toml",
-          "path": "apps/examiner-dashboard/server/Cargo.toml",
+          "path": "apps/examiner-dashboard/Cargo.toml",
           "jsonpath": "$.package.version"
         },
         {
@@ -33,7 +33,7 @@
         },
         {
           "type": "json",
-          "path": "apps/examiner-dashboard/client/package.json",
+          "path": "apps/examiner-dashboard/package.json",
           "jsonpath": "$.version"
         }
       ]

@@ -1,15 +1,8 @@
 ---
-import { Demo } from "@/components/chakra-demo";
+import Base from "@/layouts/base.astro";
+import { Home } from "@/views/home";
 ---
 
-<html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Examiner Dashboard</title>
-  </head>
-  <body>
-    <h1>Examiner Dashboard</h1>
-    <Demo client:load />
-  </body>
-</html>
+<Base>
+  <Home client:load />
+</Base>

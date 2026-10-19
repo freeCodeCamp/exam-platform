@@ -6,7 +6,7 @@ WORKDIR /src
 COPY package.json bun.lock ./
 COPY apps/web-app/package.json apps/web-app/
 COPY apps/desktop-app/package.json apps/desktop-app/
-COPY apps/examiner-dashboard/client/package.json apps/examiner-dashboard/client/
+COPY apps/examiner-dashboard/package.json apps/examiner-dashboard/
 RUN --mount=type=cache,target=/root/.bun/install/cache \
     bun install --frozen-lockfile --filter web-app
 COPY apps/web-app apps/web-app
