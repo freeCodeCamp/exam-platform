@@ -10,11 +10,15 @@
   },
   "dependencies": {
     "@astrojs/react": "catalog:astro",
+    "@chakra-ui/react": "catalog:astro",
+    "@emotion/react": "catalog:astro",
     "@tanstack/react-query": "catalog:",
     "astro": "catalog:astro",
+    "next-themes": "catalog:astro",
     "oxfmt": "catalog:",
     "react": "catalog:",
-    "react-dom": "catalog:"
+    "react-dom": "catalog:",
+    "react-icons": "catalog:astro"
   },
   "devDependencies": {
     "@astrojs/check": "catalog:astro",
