@@ -7,9 +7,10 @@ WORKDIR /src
 COPY package.json bun.lock ./
 COPY apps/web-app/package.json apps/web-app/
 COPY apps/desktop-app/package.json apps/desktop-app/
-COPY apps/examiner-dashboard/client/package.json apps/examiner-dashboard/client/
+COPY apps/examiner-dashboard/package.json apps/examiner-dashboard/
 RUN --mount=type=cache,target=/root/.bun/install/cache \
     bun install --frozen-lockfile --filter examiner-dashboard-client
+COPY apps/examiner-dashboard/astro.config.ts apps/examiner-dashboard/tsconfig.json apps/examiner-dashboard/
 COPY apps/examiner-dashboard/client apps/examiner-dashboard/client
 RUN bun --filter examiner-dashboard-client build
 
@@ -31,7 +32,7 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/*
 RUN useradd --system --no-create-home --shell /usr/sbin/nologin app
 COPY --from=build /usr/local/bin/examiner-dashboard /usr/local/bin/examiner-dashboard
-COPY --from=client /src/apps/examiner-dashboard/client/dist /app/web
+COPY --from=client /src/apps/examiner-dashboard/dist /app/web
 USER app
 ENV LISTEN_ADDR=0.0.0.0:13002 RUST_LOG=info WEB_DIR=/app/web
 EXPOSE 13002

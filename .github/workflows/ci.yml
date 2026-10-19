@@ -62,6 +62,8 @@ jobs:
               - *bun-lock
               - apps/web-app/**
               - apps/examiner-dashboard/client/**
+              - apps/examiner-dashboard/*.json
+              - apps/examiner-dashboard/*.ts
               - apps/desktop-app/**
             # Images: the app, plus what its Dockerfile copies from outside it.
             auth-api: [*ci, *cargo, .dockerignore, apps/auth-api/**]

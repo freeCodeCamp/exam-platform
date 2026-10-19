@@ -27,7 +27,7 @@
         "vite": "8.3.3",
       },
     },
-    "apps/examiner-dashboard/client": {
+    "apps/examiner-dashboard": {
       "name": "examiner-dashboard-client",
       "dependencies": {
         "@astrojs/react": "catalog:astro",
@@ -921,7 +921,7 @@
 
     "eventemitter3": ["eventemitter3@5.0.4", "", {}, "sha512-mlsTRyGaPBjPedk6Bvw+aqbsXDtoAyAzm5MO7JgU+yVRyMQ5O8bD4Kcci7BS85f93veegeCPkL8R4GLClnjLFw=="],
 
-    "examiner-dashboard-client": ["examiner-dashboard-client@workspace:apps/examiner-dashboard/client"],
+    "examiner-dashboard-client": ["examiner-dashboard-client@workspace:apps/examiner-dashboard"],
 
     "extend": ["extend@3.0.2", "", {}, "sha512-fjquC59cD7CyW6urNXK0FBufkZcoiGG80wTuPujX590cB5Ttln20E2UB4S/WARVqhXffZl2LNgS+gQdPIIim/g=="],
 

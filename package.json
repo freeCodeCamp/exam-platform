@@ -5,7 +5,7 @@
   "workspaces": {
     "packages": [
       "apps/web-app",
-      "apps/examiner-dashboard/client",
+      "apps/examiner-dashboard",
       "apps/desktop-app"
     ],
     "catalog": {
