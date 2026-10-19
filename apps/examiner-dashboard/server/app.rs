@@ -1,7 +1,9 @@
+use std::path::PathBuf;
+
 use axum::{Router, routing::get};
 use axum_extra::extract::cookie::Key;
 use oauth2::{AuthUrl, ClientId, ClientSecret, RedirectUrl, TokenUrl, basic::BasicClient};
-use tower_http::services::ServeDir;
+use tower_http::services::{ServeDir, ServeFile};
 
 use crate::config::{AppConfig, PendingLogins, ServerState};
 use crate::database::Database;
@@ -41,9 +43,14 @@ pub async fn app(config: &AppConfig) -> Router {
         .nest("/auth", routes::auth::router(config.mock_auth))
         .with_state(server_state);
 
+    let web_dir_path = PathBuf::from(&config.web_dir);
+
     runtime::instrument(api)
         // After instrumentation: probes stay out of request traces and Sentry.
         .route("/healthz", get(routes::get_healthz))
         .nest("/status", routes::status::router())
-        .fallback_service(ServeDir::new(&config.web_dir))
+        .fallback_service(
+            ServeDir::new(&web_dir_path)
+                .not_found_service(ServeFile::new(web_dir_path.join("404.html"))),
+        )
 }
