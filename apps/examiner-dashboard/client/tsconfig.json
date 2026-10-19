@@ -6,6 +6,9 @@
     "jsx": "react-jsx",
     "jsxImportSource": "react",
     "noUncheckedIndexedAccess": true,
-    "types": ["bun"]
+    "types": ["bun"],
+    "paths": {
+      "@/*": ["./src/*"]
+    }
   }
 }
