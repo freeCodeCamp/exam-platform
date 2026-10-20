@@ -43,11 +43,12 @@ Questions
 | `GOOGLE_OAUTH_SECRET`       | unless mock defaults apply | none                                 | Process environment, `.env` for Compose, Komodo                | OAuth client secret; must not be empty.                                                                                                                                            |
 | `GOOGLE_REDIRECT_URL`       | unless mock defaults apply | none                                 | Process environment, `.env` for Compose, Komodo                | Valid callback URL registered in Google Cloud: public HTTPS origin plus `/auth/google/callback`.                                                                                   |
 | `COOKIE_KEY`                | unless mock defaults apply | none                                 | Process environment, `.env` for Compose, Komodo                | Private-cookie key, at least 64 bytes. Generate with `openssl rand -hex 64`; keep secret and stable. Rotation invalidates cookies.                                                 |
+| `EDB_DATABASE_URL`          | yes                        | none                                 | Process environment, `.env` for Compose, Komodo                | eDb Postgres URL. Migrations run on startup; failure exits. Compose host `examiner-db`. Hosted: append `?sslmode=verify-full`.                                                     |
 | `MOCK_AUTH`                 | no                         | `false`                              | Process environment                                            | Debug-only mock auth. Release builds reject `true`; Compose does not forward it. Defaults for OAuth/key fields apply only when unset, not empty.                                   |
 | `PLATFORM_NETWORK`          | no                         | `platform`                           | `.env`                                                         | Shared external Docker network name.                                                                                                                                               |
 | `IMAGE`                     | no                         | empty                                | `.env`, Komodo (`EXAM_PLATFORM_EXAMINER_DASHBOARD_IMAGE`)      | Release image to run. Empty builds from source. Komodo sets on deploys.                                                                                                            |
 
-Native dashboard execution needs exported environment variables; copying `.env` alone does not load them. See [dashboard setup](../../apps/examiner-dashboard/README.md#setup). Mock mode defaults to test credentials/key and `http://127.0.0.1:13002/auth/google/callback`. Persistence remains stubbed for both real and mock auth.
+Native dashboard execution needs exported environment variables; copying `.env` alone does not load them. See [dashboard setup](../../apps/examiner-dashboard/README.md#setup). Mock mode defaults to test credentials/key and `http://127.0.0.1:13002/auth/google/callback`. Both need a running eDb: see [databases/examiner](../../databases/examiner/README.md).
 
 ### `apps/web-app`
 
@@ -106,6 +107,8 @@ Dashboard also requires these Komodo Variables (no defaults):
 | `EXAM_PLATFORM_EXAMINER_DASHBOARD_GOOGLE_OAUTH_SECRET` | Secret; passed as `GOOGLE_OAUTH_SECRET`.              |
 | `EXAM_PLATFORM_EXAMINER_DASHBOARD_GOOGLE_REDIRECT_URL` | Registered callback; passed as `GOOGLE_REDIRECT_URL`. |
 | `EXAM_PLATFORM_EXAMINER_DASHBOARD_COOKIE_KEY`          | Secret; passed as `COOKIE_KEY`.                       |
+| `EXAM_PLATFORM_EXAMINER_DASHBOARD_EDB_DATABASE_URL`    | Secret; passed as `EDB_DATABASE_URL`.                 |
+| `EXAM_PLATFORM_EXAMINER_DB_PASSWORD`                   | Secret; eDb stack passes it as `EDB_PASSWORD`.        |
 
 ### GitHub Actions
 

@@ -6,6 +6,7 @@ use axum_extra::extract::{
     PrivateCookieJar,
     cookie::{Cookie, SameSite},
 };
+use edb::NewUser;
 use http::StatusCode;
 use oauth2::{
     AccessToken, AuthorizationCode, CsrfToken, EmptyExtraTokenFields, EndpointNotSet, EndpointSet,
@@ -21,7 +22,6 @@ use url::Url;
 use super::{ALLOWED_EMAIL_DOMAIN, SESSION_TTL, create_session, is_allowed_email};
 use crate::{
     config::{PENDING_LOGIN_TTL, ServerState},
-    database::NewUser,
     error::Error,
 };
 
@@ -177,7 +177,7 @@ pub async fn get_callback(
             server_state
                 .database
                 .update_user_google_profile(
-                    &user.id,
+                    user.id,
                     &google_user_info.sub,
                     google_user_info.picture.as_deref(),
                 )

@@ -2,11 +2,11 @@ use std::path::PathBuf;
 
 use axum::{Router, routing::get};
 use axum_extra::extract::cookie::Key;
+use edb::Database;
 use oauth2::{AuthUrl, ClientId, ClientSecret, RedirectUrl, TokenUrl, basic::BasicClient};
 use tower_http::services::{ServeDir, ServeFile};
 
 use crate::config::{AppConfig, PendingLogins, ServerState};
-use crate::database::Database;
 use crate::routes;
 
 pub async fn app(config: &AppConfig) -> Router {
@@ -30,9 +30,14 @@ pub async fn app(config: &AppConfig) -> Router {
         .build()
         .expect("failed to build HTTP client");
 
+    // Runs pending migrations. Panics so the deploy fails its healthcheck and rolls back.
+    let database = Database::connect(&config.edb_database_url)
+        .await
+        .expect("failed to connect to eDb and migrate");
+
     let server_state = ServerState {
         config: config.clone(),
-        database: Database,
+        database,
         http_client,
         google_client,
         pending_logins: PendingLogins::default(),

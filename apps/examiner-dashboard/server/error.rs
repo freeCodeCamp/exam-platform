@@ -11,7 +11,7 @@ pub enum Error {
     #[error("{0}")]
     Reqwest(#[from] reqwest::Error),
     #[error("{0}")]
-    TowerSessions(#[from] tower_sessions::session::Error),
+    Sqlx(#[from] sqlx::Error),
     #[error("{0}")]
     TimeConversion(#[from] time::error::ConversionRange),
 }

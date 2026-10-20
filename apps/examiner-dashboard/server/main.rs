@@ -1,7 +1,6 @@
 //! eDd server: examiner identity, authoring, review, promotion and moderation. Serves the built client.
 mod app;
 mod config;
-mod database;
 mod error;
 mod routes;
 

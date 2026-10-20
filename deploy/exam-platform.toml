@@ -53,6 +53,25 @@ GOOGLE_OAUTH_ID=[[EXAM_PLATFORM_EXAMINER_DASHBOARD_GOOGLE_OAUTH_ID]]
 GOOGLE_OAUTH_SECRET=[[EXAM_PLATFORM_EXAMINER_DASHBOARD_GOOGLE_OAUTH_SECRET]]
 GOOGLE_REDIRECT_URL=[[EXAM_PLATFORM_EXAMINER_DASHBOARD_GOOGLE_REDIRECT_URL]]
 COOKIE_KEY=[[EXAM_PLATFORM_EXAMINER_DASHBOARD_COOKIE_KEY]]
+EDB_DATABASE_URL=[[EXAM_PLATFORM_EXAMINER_DASHBOARD_EDB_DATABASE_URL]]
+"""
+
+# eDb until production moves to hosted Postgres. Not part of the deploy Action: deploy by hand in
+# Komodo, before eDd. The volume outlives redeploys.
+[[stack]]
+name = "exam-platform-examiner-db"
+description = "eDb: Postgres for eDd"
+tags = ["exam-platform"]
+[stack.config]
+server = "exam-platform"
+repo = "freeCodeCamp/exam-platform"
+branch = "main"
+run_directory = "databases/examiner"
+file_paths = ["compose.yaml"]
+pre_deploy.command = "docker network inspect platform >/dev/null 2>&1 || docker network create platform"
+extra_args = ["--wait", "--wait-timeout", "120"]
+environment = """
+EDB_PASSWORD=[[EXAM_PLATFORM_EXAMINER_DB_PASSWORD]]
 """
 
 [[stack]]

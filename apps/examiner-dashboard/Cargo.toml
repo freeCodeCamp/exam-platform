@@ -12,16 +12,17 @@ name = "server"
 [dependencies]
 axum.workspace = true
 axum-extra.workspace = true
+edb.workspace = true
 http.workspace = true
 tokio.workspace = true
 tower-http = { workspace = true, features = ["fs"] }
 tracing.workspace = true
 thiserror.workspace = true
-tower-sessions.workspace = true
 runtime.workspace = true
 oauth2.workspace = true
 reqwest = { workspace = true, features = ["json", "rustls"] }
 serde.workspace = true
+sqlx.workspace = true
 time.workspace = true
 url.workspace = true
 

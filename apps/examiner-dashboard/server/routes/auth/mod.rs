@@ -1,4 +1,4 @@
-use std::time::{Duration, SystemTime};
+use std::time::Duration;
 
 use axum::{
     Json, Router,
@@ -10,16 +10,14 @@ use axum_extra::extract::{
     PrivateCookieJar,
     cookie::{Cookie, SameSite},
 };
+use edb::{NewUser, Session, User};
 use http::StatusCode;
 use oauth2::CsrfToken;
 use serde::Deserialize;
+use time::OffsetDateTime;
 use tracing::{instrument, warn};
 
-use crate::{
-    config::ServerState,
-    database::{NewUser, Session, User},
-    error::Error,
-};
+use crate::{config::ServerState, error::Error};
 
 pub mod google;
 
@@ -57,8 +55,8 @@ async fn create_session(
     let session = Session {
         // 32 bytes from a CSPRNG, base64url.
         session_id: CsrfToken::new_random_len(32).into_secret(),
-        user_id: user.id.clone(),
-        expires_at: SystemTime::now() + expires_in,
+        user_id: user.id,
+        expires_at: OffsetDateTime::now_utc() + expires_in,
     };
 
     server_state.database.insert_session(&session).await?;
@@ -90,7 +88,7 @@ pub async fn delete_logout(
     if let Some(session) = server_state.database.find_session(&session_id).await? {
         server_state
             .database
-            .delete_user_sessions(&session.user_id)
+            .delete_user_sessions(session.user_id)
             .await?;
     }
 

@@ -9,7 +9,8 @@ use axum::extract::FromRef;
 use axum_extra::extract::cookie::Key;
 use oauth2::PkceCodeVerifier;
 
-use crate::database::Database;
+use edb::Database;
+
 use crate::routes::auth::google::GoogleClient;
 
 #[derive(Clone)]
@@ -71,6 +72,8 @@ impl PendingLogins {
 pub struct AppConfig {
     /// Encrypts private cookies. At least 64 bytes. Rotating logs everyone out.
     pub cookie_key: String,
+    /// eDb connection string. Hosted Postgres: add `?sslmode=verify-full`.
+    pub edb_database_url: String,
     pub google_oauth_id: String,
     pub google_oauth_secret: String,
     pub google_redirect_url: String,
@@ -157,6 +160,14 @@ impl AppConfig {
             "COOKIE_KEY must be at least 64 bytes"
         );
 
+        let edb_database_url = match var("EDB_DATABASE_URL") {
+            Ok(v) => v,
+            Err(_e) => {
+                tracing::error!("EDB_DATABASE_URL not set");
+                panic!("EDB_DATABASE_URL required");
+            }
+        };
+
         let web_dir = match var("WEB_DIR") {
             Ok(v) => {
                 tracing::info!("WEB_DIR explicitly set to {v}");
@@ -167,6 +178,7 @@ impl AppConfig {
 
         Self {
             cookie_key,
+            edb_database_url,
             google_oauth_id,
             google_oauth_secret,
             google_redirect_url,

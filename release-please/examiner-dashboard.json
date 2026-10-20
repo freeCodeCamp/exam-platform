@@ -15,7 +15,8 @@
         "apps/auth-api",
         "apps/desktop-app",
         "apps/web-app",
-        "databases",
+        "databases/curriculum",
+        "databases/moderation",
         "deploy",
         "docs",
         "release-please"

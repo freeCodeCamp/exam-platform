@@ -21,6 +21,9 @@ COPY Cargo.toml Cargo.lock ./
 COPY apps/auth-api apps/auth-api
 COPY apps/examiner-dashboard apps/examiner-dashboard
 COPY libs libs
+COPY databases/examiner databases/examiner
+# Checks `query!` macros against the committed .sqlx/, so the build needs no database.
+ENV SQLX_OFFLINE=true
 RUN --mount=type=cache,target=/usr/local/cargo/registry \
     --mount=type=cache,target=/src/target \
     cargo build --locked --release -p examiner-dashboard \
