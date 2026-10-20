@@ -1,5 +1,8 @@
 ---
 import { getEntry } from "astro:content";
+
+import {QuestionBuilder} from "@/views/question-builder"
+
 const aQuestion = await getEntry("questions", "one");
 ---
 
@@ -10,19 +13,7 @@ const aQuestion = await getEntry("questions", "one");
     <title>Question builder</title>
   </head>
   <body>
-    <h1>Question builder</h1>
-    <pre>{ aQuestion?.data.passage}</pre>
 
-    {aQuestion?.data.questions.map(({ prompt, options }) => (
-      <>
-        <div> {prompt} </div>
-        <ol>
-          {" "}
-          {options.map((opt) => (
-            <li> {opt} </li>
-          ))}{" "}
-        </ol>
-      </>
-    ))}
+  <QuestionBuilder question={aQuestion!.data} client:load/>
   </body>
 </html>
