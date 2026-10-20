@@ -95,10 +95,7 @@ impl AppConfig {
 
         let get_env_with_default = |name: &str, default: &str| {
             // A missing env var and an empty one are treated as being equivalent
-            let val = match var(name) {
-                Ok(v) => v,
-                Err(_e) => String::from(""),
-            };
+            let val = var(name).unwrap_or_default();
 
             if !val.is_empty() {
                 return val;
