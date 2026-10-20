@@ -93,65 +93,30 @@ impl AppConfig {
             Err(_e) => false,
         };
 
-        let google_oauth_id = match var("GOOGLE_OAUTH_ID") {
-            Ok(v) => v,
-            Err(_e) => {
-                // If no value provided, but MOCK_AUTH=true, then default, otherwise panic
-                if !mock_auth {
-                    tracing::error!("GOOGLE_OAUTH_ID not set");
-                    panic!("GOOGLE_OAUTH_ID required");
-                }
-                "test-dev-string".to_string()
-            }
-        };
-        assert!(
-            !google_oauth_id.is_empty(),
-            "GOOGLE_OAUTH_ID must not be empty"
-        );
+        let get_env_with_default = |name: &str, default: &str| {
+            // A missing env var and an empty one are treated as being equivalent
+            let val = var(name).unwrap_or_default();
 
-        let google_oauth_secret = match var("GOOGLE_OAUTH_SECRET") {
-            Ok(v) => v,
-            Err(_e) => {
-                // If no value provided, but MOCK_AUTH=true, then default, otherwise panic
-                if !mock_auth {
-                    tracing::error!("GOOGLE_OAUTH_SECRET not set");
-                    panic!("GOOGLE_OAUTH_SECRET required");
-                }
-                "test-dev-string".to_string()
+            if !val.is_empty() {
+                return val;
             }
-        };
-        assert!(
-            !google_oauth_secret.is_empty(),
-            "GOOGLE_OAUTH_SECRET must not be empty"
-        );
 
-        let google_redirect_url = match var("GOOGLE_REDIRECT_URL") {
-            Ok(v) => v,
-            Err(_e) => {
-                // If no value provided, but MOCK_AUTH=true, then default, otherwise panic
-                if !mock_auth {
-                    tracing::error!("GOOGLE_REDIRECT_URL not set");
-                    panic!("GOOGLE_REDIRECT_URL required");
-                }
-                "http://127.0.0.1:13002/auth/google/callback".to_string()
+            if !mock_auth {
+                tracing::error!("{name} not set");
+                panic!("{name} required");
             }
-        };
-        assert!(
-            url::Url::parse(&google_redirect_url).is_ok(),
-            "GOOGLE_REDIRECT_URL must be a valid URL"
-        );
 
-        let cookie_key = match var("COOKIE_KEY") {
-            Ok(v) => v,
-            Err(_e) => {
-                // If no value provided, but MOCK_AUTH=true, then default, otherwise panic
-                if !mock_auth {
-                    tracing::error!("COOKIE_KEY not set");
-                    panic!("COOKIE_KEY required");
-                }
-                "test-dev-string".repeat(5)
-            }
+            default.to_string()
         };
+
+        let google_oauth_id = get_env_with_default("GOOGLE_OAUTH_ID", "test-dev-string");
+        let google_oauth_secret = get_env_with_default("GOOGLE_OAUTH_SECRET", "test-dev-string");
+        let google_redirect_url = get_env_with_default(
+            "GOOGLE_REDIRECT_URL",
+            "http://127.0.0.1:13002/auth/google/callback",
+        );
+        let cookie_key = get_env_with_default("COOKIE_KEY", &"test-dev-string".repeat(5));
+
         assert!(
             cookie_key.len() >= 64,
             "COOKIE_KEY must be at least 64 bytes"
