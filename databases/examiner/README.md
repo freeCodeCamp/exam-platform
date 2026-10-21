@@ -1,6 +1,6 @@
 # Examiner Database (eDb)
 
-Postgres. eDd is its only user. Crate `edb` (root Cargo workspace) holds the schema, migrations and queries; eDd calls `edb::Database`.
+Postgres. eDd is its only user. Crate `edb` (root Cargo workspace) holds the schema, migrations and queries.
 
 |               |                                                                                    |
 | ------------- | ---------------------------------------------------------------------------------- |
@@ -15,7 +15,7 @@ Postgres. eDd is its only user. Crate `edb` (root Cargo workspace) holds the sch
 Needs `sqlx-cli` 0.9: `cargo install sqlx-cli --version 0.9.0 --locked --no-default-features --features rustls,postgres,sqlx-toml`.
 
 ```bash
-cp .env.example .env   # set EDB_PASSWORD, and it in EDB_DATABASE_URL
+cp .env.example .env   # set EDB_PASSWORD, and add it in EDB_DATABASE_URL
 docker compose up -d --wait
 set -a; source .env; set +a
 cargo sqlx migrate run
