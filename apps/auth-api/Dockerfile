@@ -8,6 +8,7 @@ COPY apps/auth-api apps/auth-api
 COPY apps/examiner-dashboard/Cargo.toml apps/examiner-dashboard/
 COPY apps/examiner-dashboard/server apps/examiner-dashboard/server
 COPY libs libs
+COPY databases/examiner databases/examiner
 RUN --mount=type=cache,target=/usr/local/cargo/registry \
     --mount=type=cache,target=/src/target \
     cargo build --locked --release -p auth-api \

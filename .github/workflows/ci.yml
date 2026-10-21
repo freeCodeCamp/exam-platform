@@ -40,6 +40,7 @@ jobs:
               - Cargo.toml
               - Cargo.lock
               - libs/**
+              - databases/examiner/**
             bun-lock: &bun-lock
               - package.json
               - bun.lock
@@ -85,6 +86,21 @@ jobs:
     runs-on: ubuntu-26.04
     permissions:
       contents: read
+    services:
+      # For edb's #[sqlx::test]s, which create a database per test.
+      postgres:
+        image: postgres:18.6-trixie
+        env:
+          POSTGRES_USER: edd
+          POSTGRES_PASSWORD: edd
+          POSTGRES_DB: examiner
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U edd" --health-interval 5s --health-timeout 5s
+          --health-retries 10
+    env:
+      # #[sqlx::test] reads DATABASE_URL, not sqlx.toml's EDB_DATABASE_URL.
+      DATABASE_URL: postgres://edd:edd@127.0.0.1:5432/examiner
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -94,7 +110,10 @@ jobs:
         with:
           cache-save-if: ${{ github.ref == 'refs/heads/main' }}
       - run: cargo fmt --all --check
+      # Offline, as in the Docker build: fails if a query! is missing from the committed .sqlx/.
       - run: cargo clippy --workspace --all-targets --locked
+        env:
+          SQLX_OFFLINE: "true"
       # dApp builds runtime without `server`; clippy only lints workspace members.
       - run: cargo clippy -p runtime --no-default-features --all-targets --locked
       - run: cargo test --workspace --locked

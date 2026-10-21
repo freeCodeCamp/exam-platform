@@ -59,6 +59,15 @@ Generate cookie key with `openssl rand -hex 64`. Create these Komodo Variables b
 | `EXAM_PLATFORM_EXAMINER_DASHBOARD_GOOGLE_REDIRECT_URL` | Registered callback URL above    |
 | `EXAM_PLATFORM_EXAMINER_DASHBOARD_COOKIE_KEY`          | Generated key; mark secret       |
 
+## Examiner Database
+
+Until production moves to hosted Postgres, eDb runs as Komodo stack `exam-platform-examiner-db` (`databases/examiner/compose.yaml`). Generate a password with `openssl rand -hex 32`, then create secret Variables:
+
+- `EXAM_PLATFORM_EXAMINER_DB_PASSWORD`: the password.
+- `EXAM_PLATFORM_EXAMINER_DASHBOARD_EDB_DATABASE_URL`: `postgres://edd:<password>@examiner-db:5432/examiner`.
+
+Deploy the eDb stack by hand before eDd's first deploy. The deploy Action does not touch it. eDd migrates the schema on startup.
+
 ## Komodo Log-In
 
 1. Open `https://exam-platform.freecodecamp.dev` and log in as `admin` with the password from `.env`. Change the password, then add a passkey or TOTP. Nobody can sign up: admins add users under Settings → Users, and each user adds 2FA at first login.

@@ -9,5 +9,6 @@
 **/.secrets
 book
 docs
-databases
+databases/*
+!databases/examiner
 apps/desktop-app/backend

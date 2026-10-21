@@ -18,6 +18,7 @@ services:
       GOOGLE_OAUTH_SECRET: ${GOOGLE_OAUTH_SECRET:?set GOOGLE_OAUTH_SECRET}
       GOOGLE_REDIRECT_URL: ${GOOGLE_REDIRECT_URL:?set GOOGLE_REDIRECT_URL}
       COOKIE_KEY: ${COOKIE_KEY:?set COOKIE_KEY to at least 64 random bytes}
+      EDB_DATABASE_URL: ${EDB_DATABASE_URL:?set EDB_DATABASE_URL}
     networks:
       platform:
         aliases: [examiner-dashboard]

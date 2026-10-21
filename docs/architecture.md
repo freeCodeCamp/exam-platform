@@ -30,4 +30,4 @@ graph LR
 | **cDb**     | Exam content and its whole history. Self-hosted Dolt.                                                                                                                         |
 | **mDb**     | Candidate identity, attempts, responses, and evidence. All candidate data.                                                                                                    |
 | **eDd**     | Where examiners author, review, promote, and moderate. Owns examiner identity, roles, and scopes. This is both a server and web-app.                                          |
-| **eDb**     | Everything eDd owns that is not versioned curriculum content.                                                                                                                 |
+| **eDb**     | Everything eDd owns that is not versioned curriculum content. Postgres.                                                                                                       |

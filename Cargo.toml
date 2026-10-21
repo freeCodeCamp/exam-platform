@@ -3,7 +3,7 @@
 # builds never resolve Tauri or webkit dependencies.
 [workspace]
 resolver = "3"
-members = ["apps/auth-api", "apps/examiner-dashboard", "libs/*"]
+members = ["apps/auth-api", "apps/examiner-dashboard", "databases/examiner", "libs/*"]
 exclude = ["apps/desktop-app"]
 
 [workspace.package]
@@ -38,7 +38,20 @@ oauth2 = { version = "5.0.0", default-features = false }
 serde = { version = "1.0.229", features = ["derive"] }
 time = "0.3.55"
 url = "2.5.8"
-tower-sessions = "0.15"
+sha2 = "0.11.1"
+# aws-lc-rs: the rustls provider reqwest already uses.
+sqlx = { version = "0.9.0", default-features = false, features = [
+  "macros",
+  "migrate",
+  "postgres",
+  "runtime-tokio",
+  "sqlx-toml",
+  "time",
+  "tls-rustls-aws-lc-rs",
+  "uuid",
+] }
+uuid = "1.28.0"
+edb = { path = "databases/examiner" }
 runtime = { path = "libs/runtime" }
 
 [workspace.lints.clippy]
