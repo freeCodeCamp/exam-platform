@@ -74,7 +74,10 @@ export function QuestionBuilder() {
         <Text>Author exams.</Text>
         <DragDropProvider
           onDragEnd={(event) => {
+            // e.g. if the user presses Escape
             if (event.canceled) return;
+            // if the user drops somewhere other than the preview
+            if (!event.operation.target) return;
 
             const { source } = event.operation;
 
