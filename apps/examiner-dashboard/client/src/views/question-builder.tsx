@@ -25,17 +25,28 @@ type MCQ = HasId &
     kind: "multiple-choice";
   };
 
-function SideBar() {
+type Element = Paragraph | MCQ;
+
+function SideBar({ elements }: { elements: Element[] }) {
   return (
     <VStack border="md" flexGrow={0.5}>
       <Draggable id="paragraph" />
       <Draggable id="multipleChoice" />
-      <Box>Page:</Box>
+      <Box>
+        Page:
+        <VStack>
+          {elements.map((el, id) => (
+            <div key={el.id}>
+              {id} {el.kind}
+            </div>
+          ))}
+        </VStack>
+      </Box>
     </VStack>
   );
 }
 
-function Preview({ elements }: { elements: (Paragraph | MCQ)[] }) {
+function Preview({ elements }: { elements: Element[] }) {
   return (
     <>
       Preview:
@@ -56,7 +67,7 @@ function Preview({ elements }: { elements: (Paragraph | MCQ)[] }) {
 }
 
 export function QuestionBuilder() {
-  const [elements, setElements] = useState<(Paragraph | MCQ)[]>([]);
+  const [elements, setElements] = useState<Element[]>([]);
   return (
     <AppRoot>
       <PageShell title="Question Builder">
@@ -83,7 +94,7 @@ export function QuestionBuilder() {
             <Droppable id="droppable">
               <Preview elements={elements} />
             </Droppable>
-            <SideBar />
+            <SideBar elements={elements} />
           </Flex>
         </DragDropProvider>
       </PageShell>
