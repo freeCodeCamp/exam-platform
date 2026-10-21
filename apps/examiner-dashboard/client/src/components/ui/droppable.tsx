@@ -5,9 +5,5 @@ export function Droppable({ id, children }: { id: string; children: React.ReactN
     id,
   });
 
-  return (
-    <div ref={ref} style={{ width: 300, height: 300 }}>
-      {children}
-    </div>
-  );
+  return <div ref={ref}>{children}</div>;
 }
