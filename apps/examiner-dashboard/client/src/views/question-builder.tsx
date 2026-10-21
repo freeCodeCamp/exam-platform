@@ -1,4 +1,4 @@
-import { Flex, Text, VStack } from "@chakra-ui/react";
+import { Box, Flex, Text, VStack } from "@chakra-ui/react";
 import { DragDropProvider } from "@dnd-kit/react";
 import { Fragment, useState } from "react";
 
@@ -18,47 +18,45 @@ interface HasId {
 
 type Paragraph = HasId & {
   text: string;
+  kind: "paragraph";
 };
-type MCQ = HasId & Question;
+type MCQ = HasId &
+  Question & {
+    kind: "multiple-choice";
+  };
 
 function SideBar() {
   return (
     <VStack border="md" flexGrow={0.5}>
       <Draggable id="paragraph" />
       <Draggable id="multipleChoice" />
+      <Box>Page:</Box>
     </VStack>
   );
 }
 
-function Preview({
-  paragraphs,
-  multipleChoices,
-}: {
-  paragraphs: Paragraph[];
-  multipleChoices: MCQ[];
-}) {
+function Preview({ elements }: { elements: (Paragraph | MCQ)[] }) {
   return (
     <>
       Preview:
-      {paragraphs.map((x) => (
-        <div key={x.id}>
-          {" "}
-          Paragraph, id: {x.id}, text: {x.text}
-        </div>
-      ))}
-      {multipleChoices.map((x) => (
-        <Fragment key={x.id}>
-          MCQ: {x.id}
-          <MultipleChoice prompt={x.prompt} options={x.options} />
-        </Fragment>
-      ))}{" "}
+      {elements.map((x) =>
+        x.kind == "paragraph" ? (
+          <div key={x.id}>
+            Paragraph, id: {x.id}, text: {x.text}
+          </div>
+        ) : (
+          <Fragment key={x.id}>
+            MCQ: {x.id}
+            <MultipleChoice prompt={x.prompt} options={x.options} />
+          </Fragment>
+        ),
+      )}
     </>
   );
 }
 
 export function QuestionBuilder() {
-  const [paragraphs, setparagraphs] = useState<Paragraph[]>([]);
-  const [multipleChoices, setMultipleChoices] = useState<MCQ[]>([]);
+  const [elements, setElements] = useState<(Paragraph | MCQ)[]>([]);
   return (
     <AppRoot>
       <PageShell title="Question Builder">
@@ -71,16 +69,19 @@ export function QuestionBuilder() {
 
             if (source?.id == "paragraph") {
               const id = crypto.randomUUID();
-              setparagraphs((xs) => [...xs, { id, text: "" }]);
+              setElements((xs) => [...xs, { id, text: "", kind: "paragraph" }]);
             } else {
               const id = crypto.randomUUID();
-              setMultipleChoices((xs) => [...xs, { id, prompt: "", correct: 0, options: [] }]);
+              setElements((xs) => [
+                ...xs,
+                { id, prompt: "", correct: 0, options: [], kind: "multiple-choice" },
+              ]);
             }
           }}
         >
           <Flex justify={"space-between"}>
             <Droppable id="droppable">
-              <Preview paragraphs={paragraphs} multipleChoices={multipleChoices} />
+              <Preview elements={elements} />
             </Droppable>
             <SideBar />
           </Flex>
