@@ -1,6 +1,6 @@
 import { Flex, Text, VStack } from "@chakra-ui/react";
 import { DragDropProvider } from "@dnd-kit/react";
-import { useState } from "react";
+import { Fragment, useState } from "react";
 
 import type { CollectionEntry } from "astro:content";
 
@@ -8,44 +8,57 @@ import { AppRoot } from "@/components/app-root";
 import { PageShell } from "@/components/page-shell";
 import { Draggable } from "@/components/ui/draggable";
 import { Droppable } from "@/components/ui/droppable";
+import { MultipleChoice } from "@/components/questions/multiple-choice";
 
-type Question = CollectionEntry<"questions">["data"];
+type Question = CollectionEntry<"questions">["data"]["questions"][number];
 
 interface HasId {
-  id: number;
+  id: string;
 }
 
-interface Form extends HasId {}
-interface Other extends HasId {}
-
-const max: (xs: number[]) => number = (xs) => xs.reduce((prev, curr) => Math.max(prev, curr), 0);
+type Paragraph = HasId & {
+  text: string;
+};
+type MCQ = HasId & Question;
 
 function SideBar() {
   return (
     <VStack border="md" flexGrow={0.5}>
-      <Draggable id="form" />
-      <Draggable id="other" />
+      <Draggable id="paragraph" />
+      <Draggable id="multipleChoice" />
     </VStack>
   );
 }
 
-function Preview({ forms, others }: { forms: Form[]; others: Other[] }) {
+function Preview({
+  paragraphs,
+  multipleChoices,
+}: {
+  paragraphs: Paragraph[];
+  multipleChoices: MCQ[];
+}) {
   return (
     <>
       Preview:
-      {forms.map(({ id }) => (
-        <div key={id}> Form: {id}</div>
+      {paragraphs.map((x) => (
+        <div key={x.id}>
+          {" "}
+          Paragraph, id: {x.id}, text: {x.text}
+        </div>
       ))}
-      {others.map(({ id }) => (
-        <div key={id}> Other: {id}</div>
+      {multipleChoices.map((x) => (
+        <Fragment key={x.id}>
+          MCQ: {x.id}
+          <MultipleChoice prompt={x.prompt} options={x.options} />
+        </Fragment>
       ))}{" "}
     </>
   );
 }
 
 export function QuestionBuilder() {
-  const [forms, setForms] = useState<Form[]>([]);
-  const [others, setOthers] = useState<Other[]>([]);
+  const [paragraphs, setparagraphs] = useState<Paragraph[]>([]);
+  const [multipleChoices, setMultipleChoices] = useState<MCQ[]>([]);
   return (
     <AppRoot>
       <PageShell title="Question Builder">
@@ -56,18 +69,18 @@ export function QuestionBuilder() {
 
             const { source } = event.operation;
 
-            if (source?.id == "form") {
-              const maxId = max(forms.map(({ id }) => id));
-              setForms((xs) => [...xs, { id: maxId + 1 }]);
+            if (source?.id == "paragraph") {
+              const id = crypto.randomUUID();
+              setparagraphs((xs) => [...xs, { id, text: "" }]);
             } else {
-              const maxId = max(others.map(({ id }) => id));
-              setOthers((xs) => [...xs, { id: maxId + 1 }]);
+              const id = crypto.randomUUID();
+              setMultipleChoices((xs) => [...xs, { id, prompt: "", correct: 0, options: [] }]);
             }
           }}
         >
           <Flex justify={"space-between"}>
             <Droppable id="droppable">
-              <Preview forms={forms} others={others} />
+              <Preview paragraphs={paragraphs} multipleChoices={multipleChoices} />
             </Droppable>
             <SideBar />
           </Flex>

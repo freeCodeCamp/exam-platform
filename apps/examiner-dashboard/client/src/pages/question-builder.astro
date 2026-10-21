@@ -1,9 +1,9 @@
 ---
-import { getEntry } from "astro:content";
+// import { getEntry } from "astro:content";
 
 import { QuestionBuilder } from "@/views/question-builder";
 
-const aQuestion = await getEntry("questions", "one");
+// const aQuestion = await getEntry("questions", "one");
 ---
 
 <html lang="en">
@@ -13,6 +13,6 @@ const aQuestion = await getEntry("questions", "one");
     <title>Question builder</title>
   </head>
   <body>
-    <QuestionBuilder question={aQuestion!.data} client:load />
+    <QuestionBuilder client:load />
   </body>
 </html>
