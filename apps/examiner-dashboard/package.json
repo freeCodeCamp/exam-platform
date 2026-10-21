@@ -20,6 +20,7 @@
     "oxfmt": "catalog:",
     "react": "catalog:",
     "react-dom": "catalog:",
+    "react-hook-form": "^7.90.0",
     "react-icons": "catalog:astro"
   },
   "devDependencies": {

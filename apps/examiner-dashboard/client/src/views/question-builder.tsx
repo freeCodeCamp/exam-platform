@@ -1,6 +1,7 @@
 import { Box, Flex, Text, VStack } from "@chakra-ui/react";
 import { DragDropProvider } from "@dnd-kit/react";
 import { Fragment, useState } from "react";
+import { useForm, type SubmitHandler } from "react-hook-form";
 
 import type { CollectionEntry } from "astro:content";
 
@@ -27,7 +28,41 @@ type MCQ = HasId &
 
 type Element = Paragraph | MCQ;
 
-function SideBar({ elements }: { elements: Element[] }) {
+interface ParagraphInputs {
+  text: string;
+}
+
+function ParagraphEditor({
+  paragraph,
+  updateParagraph,
+}: {
+  paragraph: Paragraph;
+  updateParagraph: (id: string, text: string) => void;
+}) {
+  const { register, handleSubmit } = useForm<ParagraphInputs>();
+  const onSubmit = handleSubmit((data) => updateParagraph(paragraph.id, data.text));
+
+  return (
+    <div>
+      {paragraph.id} {paragraph.kind}
+      <form onSubmit={onSubmit}>
+        <label htmlFor="para">Text:</label>
+
+        <input {...register("text")} />
+      </form>
+    </div>
+  );
+}
+
+type UpdateParagraph = (id: string, text: string) => void;
+
+function SideBar({
+  elements,
+  updateParagraph,
+}: {
+  elements: Element[];
+  updateParagraph: UpdateParagraph;
+}) {
   return (
     <VStack border="md" flexGrow={0.5}>
       <Draggable id="paragraph" />
@@ -35,11 +70,19 @@ function SideBar({ elements }: { elements: Element[] }) {
       <Box>
         Page:
         <VStack>
-          {elements.map((el, id) => (
-            <div key={el.id}>
-              {id} {el.kind}
-            </div>
-          ))}
+          {elements.map((el, id) =>
+            el.kind !== "paragraph" ? (
+              <div key={el.id}>
+                {id} {el.kind}
+              </div>
+            ) : (
+              <ParagraphEditor
+                key={id}
+                paragraph={el}
+                updateParagraph={(id, text) => updateParagraph(id, text)}
+              />
+            ),
+          )}
         </VStack>
       </Box>
     </VStack>
@@ -68,6 +111,10 @@ function Preview({ elements }: { elements: Element[] }) {
 
 export function QuestionBuilder() {
   const [elements, setElements] = useState<Element[]>([]);
+  const updateParagraph: UpdateParagraph = (id, text) => {
+    setElements((xs) => xs.map((x) => (x.id === id ? { id, text, kind: "paragraph" } : x)));
+  };
+
   return (
     <AppRoot>
       <PageShell title="Question Builder">
@@ -97,7 +144,7 @@ export function QuestionBuilder() {
             <Droppable id="droppable">
               <Preview elements={elements} />
             </Droppable>
-            <SideBar elements={elements} />
+            <SideBar elements={elements} updateParagraph={updateParagraph} />
           </Flex>
         </DragDropProvider>
       </PageShell>
