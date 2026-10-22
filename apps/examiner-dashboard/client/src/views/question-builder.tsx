@@ -61,7 +61,7 @@ function MultipleChoiceEditor({
         updateText={updatePrompt}
       />
       {mcq.options.map((opt) => (
-        <TextEditor label="Option: " text={opt} updateText={updateOption} />
+        <TextEditor key={opt.id} label="Option: " text={opt} updateText={updateOption} />
       ))}
       <Button onClick={addOption}> Add option </Button>
     </div>
