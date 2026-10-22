@@ -19,7 +19,7 @@ interface HasId {
 
 interface Text extends HasId {
   value: string;
-};
+}
 type Paragraph = Text & {
   kind: "paragraph";
 };
@@ -30,6 +30,7 @@ type MCQ = Question & {
 type Option = Question["options"][number];
 
 type Element = Paragraph | MCQ;
+type Kind = Element["kind"];
 
 function MultipleChoiceEditor({
   mcq,
@@ -68,7 +69,6 @@ function MultipleChoiceEditor({
   );
 }
 
-
 function TextEditor({
   label,
   text,
@@ -94,6 +94,16 @@ function TextEditor({
 type UpdateParagraph = (text: Text) => void;
 type UpdateMCQ = (data: Question) => void;
 
+function EnumeratedElement({ n, kind }: { n: number; kind: Kind }) {
+  const paddedNumber = n < 10 ? "0" + n : "" + n;
+
+  return (
+    <>
+      {paddedNumber} {kind === "paragraph" ? "Paragraph" : "Multiple Choice"}
+    </>
+  );
+}
+
 function SideBar({
   elements,
   updateParagraph,
@@ -110,13 +120,20 @@ function SideBar({
       <Box>
         Page:
         <VStack>
-          {elements.map((el) =>
-            el.kind !== "paragraph" ? (
-              <MultipleChoiceEditor key={el.id} mcq={el} updateMCQ={updateMCQ} />
-            ) : (
-<TextEditor key={el.id} label="Paragraph: " text={el} updateText={updateParagraph}/>
-            ),
-          )}
+          {elements.map((el, id) => (
+            <Fragment key={el.id}>
+              <EnumeratedElement n={id + 1} kind={el.kind} />
+              {el.kind !== "paragraph" ? (
+                <MultipleChoiceEditor mcq={el} updateMCQ={updateMCQ} />
+              ) : (
+                <TextEditor
+                  label="Paragraph: "
+                  text={el}
+                  updateText={updateParagraph}
+                />
+              )}
+            </Fragment>
+          ))}
         </VStack>
       </Box>
     </VStack>
