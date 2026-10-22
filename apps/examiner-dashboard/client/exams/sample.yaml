@@ -21,20 +21,51 @@
     Ella
   questions:
     - prompt: "When can you have breakfast?"
-      options: ["from 7:00 to 10:00", "from 12:00 to 14:00", "from 18:00 to 21:00", "at midnight"]
+      options:
+        - value: "from 7:00 to 10:00"
+          id: "a"
+        - value: "from 12:00 to 14:00"
+          id: "b"
+        - value: "from 18:00 to 21:00"
+          id: "c"
+        - value: "at midnight"
+          id: "d"
       correct: 0
       id: "a"
     - prompt: "Where is the restaurant?"
-      options: ["on the first floor", "in the park", "in Lucy's room", "next to the hotel"]
+      options:
+        - value: "on the first floor"
+          id: "a"
+        - value: "in the park"
+          id: "b"
+        - value: "in Lucy's room"
+          id: "c"
+        - value: "next to the hotel"
+          id: "d"
       correct: 0
       id: "b"
     - prompt: "What time do Ella and Lucy meet?"
-      options: ["at 12:00", "at 7:00", "at 18:00", "at 21:00"]
+      options:
+        - value: "at 12:00"
+          id: "a"
+        - value: "at 7:00"
+          id: "b"
+        - value: "at 18:00"
+          id: "c"
+        - value: "at 21:00"
+          id: "d"
       correct: 0
       id: "c"
     - prompt: "Lucy gets up late. It is 10:30. Can she have breakfast in the restaurant?"
       options:
-        ["No, it is too late.", "Yes, at the hotel.", "Yes, at noon.", "No, it is dinner time."]
+        - value: "No, it is too late."
+          id: "a"
+        - value: "Yes, at the hotel."
+          id: "b"
+        - value: "Yes, at noon."
+          id: "c"
+        - value: "No, it is dinner time."
+          id: "d"
       correct: 0
       id: "d"
   teacherNotes: >

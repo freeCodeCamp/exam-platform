@@ -1,7 +1,7 @@
-import { Box, Flex, Text, VStack } from "@chakra-ui/react";
+import { Box, Button, Flex, Text, VStack } from "@chakra-ui/react";
 import { DragDropProvider } from "@dnd-kit/react";
 import { Fragment, useState } from "react";
-import { useForm, type SubmitHandler } from "react-hook-form";
+import { useForm } from "react-hook-form";
 
 import type { CollectionEntry } from "astro:content";
 
@@ -21,10 +21,9 @@ type Paragraph = HasId & {
   text: string;
   kind: "paragraph";
 };
-type MCQ = HasId &
-  Question & {
-    kind: "multiple-choice";
-  };
+type MCQ = Question & {
+  kind: "multiple-choice";
+};
 
 type Element = Paragraph | MCQ;
 
@@ -54,14 +53,48 @@ function ParagraphEditor({
   );
 }
 
+function MultipleChoiceEditor({
+  mcq,
+  updateMCQ,
+}: {
+  mcq: MCQ;
+  updateMCQ: (data: Question) => void;
+}) {
+  const { register, handleSubmit } = useForm<Omit<Question, "id">>({ defaultValues: mcq });
+  const onSubmit = handleSubmit((data) => updateMCQ({ ...data, id: mcq.id }));
+
+  const addOption = () =>
+    updateMCQ({
+      ...mcq,
+      options: [
+        ...mcq.options,
+        { value: "Option: " + mcq.options.length, id: crypto.randomUUID() },
+      ],
+    });
+
+  return (
+    <div>
+      {mcq.id} {mcq.kind}
+      <form onSubmit={onSubmit}>
+        <label>Prompt:</label>
+        <input {...register("prompt")} />
+      </form>
+      <Button onClick={addOption}> Add option </Button>
+    </div>
+  );
+}
+
 type UpdateParagraph = (id: string, text: string) => void;
+type UpdateMCQ = (data: Question) => void;
 
 function SideBar({
   elements,
   updateParagraph,
+  updateMCQ,
 }: {
   elements: Element[];
   updateParagraph: UpdateParagraph;
+  updateMCQ: UpdateMCQ;
 }) {
   return (
     <VStack border="md" flexGrow={0.5}>
@@ -70,14 +103,12 @@ function SideBar({
       <Box>
         Page:
         <VStack>
-          {elements.map((el, id) =>
+          {elements.map((el) =>
             el.kind !== "paragraph" ? (
-              <div key={el.id}>
-                {id} {el.kind}
-              </div>
+              <MultipleChoiceEditor key={el.id} mcq={el} updateMCQ={updateMCQ} />
             ) : (
               <ParagraphEditor
-                key={id}
+                key={el.id}
                 paragraph={el}
                 updateParagraph={(id, text) => updateParagraph(id, text)}
               />
@@ -115,6 +146,11 @@ export function QuestionBuilder() {
     setElements((xs) => xs.map((x) => (x.id === id ? { id, text, kind: "paragraph" } : x)));
   };
 
+  const updateMCQ: UpdateMCQ = (data) =>
+    setElements((xs) =>
+      xs.map((x) => (x.id === data.id ? { ...data, kind: "multiple-choice" } : x)),
+    );
+
   return (
     <AppRoot>
       <PageShell title="Question Builder">
@@ -130,12 +166,21 @@ export function QuestionBuilder() {
 
             if (source?.id == "paragraph") {
               const id = crypto.randomUUID();
-              setElements((xs) => [...xs, { id, text: "", kind: "paragraph" }]);
+              setElements((xs) => [
+                ...xs,
+                { id, text: "Placeholder paragraph", kind: "paragraph" },
+              ]);
             } else {
               const id = crypto.randomUUID();
               setElements((xs) => [
                 ...xs,
-                { id, prompt: "", correct: 0, options: [], kind: "multiple-choice" },
+                {
+                  id,
+                  prompt: "Placeholder prompt",
+                  correct: 0,
+                  options: [],
+                  kind: "multiple-choice",
+                },
               ]);
             }
           }}
@@ -144,7 +189,7 @@ export function QuestionBuilder() {
             <Droppable id="droppable">
               <Preview elements={elements} />
             </Droppable>
-            <SideBar elements={elements} updateParagraph={updateParagraph} />
+            <SideBar elements={elements} updateParagraph={updateParagraph} updateMCQ={updateMCQ} />
           </Flex>
         </DragDropProvider>
       </PageShell>

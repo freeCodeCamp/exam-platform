@@ -8,9 +8,20 @@ const questionSchema = z.object({
   questions: z.array(
     z.object({
       prompt: z.string(),
-      options: z.array(z.string()).refine((xs) => new Set(xs).size === xs.length, {
-        message: "Duplicate options are not allowed",
-      }),
+      options: z
+        .array(
+          z.object({
+            value: z.string(),
+            id: z.string(),
+          }),
+        )
+        .refine(
+          (xs) => {
+            const values = xs.map(({ value }) => value);
+            return new Set(values).size === xs.length;
+          },
+          { message: "Duplicate options are not allowed" },
+        ),
       correct: z.number(),
       id: z.string(),
     }),
