@@ -33,35 +33,39 @@ type Element = Paragraph | MCQ;
 type Kind = Element["kind"];
 
 function MultipleChoiceEditor({
-  mcq,
-  updateMCQ,
+  element,
+  updateElement,
 }: {
-  mcq: MCQ;
-  updateMCQ: (data: Question) => void;
+  element: MCQ;
+  updateElement: UpdateElement;
 }) {
   const addOption = () =>
-    updateMCQ({
-      ...mcq,
+    updateElement({
+      ...element,
       options: [
-        ...mcq.options,
-        { value: "Option: " + mcq.options.length, id: crypto.randomUUID() },
+        ...element.options,
+        { value: "Option: " + element.options.length, id: crypto.randomUUID() },
       ],
     });
 
   const updateOption = (data: Option) =>
-    updateMCQ({ ...mcq, options: mcq.options.map((opt) => (opt.id == data.id ? data : opt)) });
+    updateElement({
+      ...element,
+      options: element.options.map((opt) => (opt.id == data.id ? data : opt)),
+    });
 
-  const updatePrompt: (text: Text) => void = (text) => updateMCQ({ ...mcq, prompt: text.value });
+  const updatePrompt: (text: Text) => void = (text) =>
+    updateElement({ ...element, prompt: text.value });
 
   return (
     <div>
-      {mcq.id} {mcq.kind}
+      {element.id} {element.kind}
       <TextEditor
         label="Prompt: "
-        text={{ id: mcq.id, value: mcq.prompt }}
+        text={{ id: element.id, value: element.prompt }}
         updateText={updatePrompt}
       />
-      {mcq.options.map((opt) => (
+      {element.options.map((opt) => (
         <TextEditor key={opt.id} label="Option: " text={opt} updateText={updateOption} />
       ))}
       <Button onClick={addOption}> Add option </Button>
@@ -91,8 +95,19 @@ function TextEditor({
   );
 }
 
-type UpdateParagraph = (text: Text) => void;
-type UpdateMCQ = (data: Question) => void;
+function ParagraphEditor({
+  element,
+  updateElement,
+}: {
+  element: Paragraph;
+  updateElement: UpdateElement;
+}) {
+  const updateText = (text: Text) => updateElement({ ...text, kind: "paragraph" });
+
+  return <TextEditor label="Paragraph: " text={element} updateText={updateText} />;
+}
+
+type UpdateElement = (el: Element) => void;
 
 function EnumeratedElement({ n, kind }: { n: number; kind: Kind }) {
   const paddedNumber = n < 10 ? "0" + n : "" + n;
@@ -106,12 +121,10 @@ function EnumeratedElement({ n, kind }: { n: number; kind: Kind }) {
 
 function SideBar({
   elements,
-  updateParagraph,
-  updateMCQ,
+  updateElement,
 }: {
   elements: Element[];
-  updateParagraph: UpdateParagraph;
-  updateMCQ: UpdateMCQ;
+  updateElement: UpdateElement;
 }) {
   return (
     <VStack border="md" flexGrow={0.5}>
@@ -123,14 +136,10 @@ function SideBar({
           {elements.map((el, id) => (
             <Fragment key={el.id}>
               <EnumeratedElement n={id + 1} kind={el.kind} />
-              {el.kind !== "paragraph" ? (
-                <MultipleChoiceEditor mcq={el} updateMCQ={updateMCQ} />
+              {el.kind === "multiple-choice" ? (
+                <MultipleChoiceEditor element={el} updateElement={updateElement} />
               ) : (
-                <TextEditor
-                  label="Paragraph: "
-                  text={el}
-                  updateText={updateParagraph}
-                />
+                <ParagraphEditor element={el} updateElement={updateElement} />
               )}
             </Fragment>
           ))}
@@ -162,14 +171,9 @@ function Preview({ elements }: { elements: Element[] }) {
 
 export function QuestionBuilder() {
   const [elements, setElements] = useState<Element[]>([]);
-  const updateParagraph: UpdateParagraph = (text) => {
-    setElements((xs) => xs.map((x) => (x.id === text.id ? { ...text, kind: "paragraph" } : x)));
-  };
 
-  const updateMCQ: UpdateMCQ = (data) =>
-    setElements((xs) =>
-      xs.map((x) => (x.id === data.id ? { ...data, kind: "multiple-choice" } : x)),
-    );
+  const updateElement: UpdateElement = (data) =>
+    setElements((xs) => xs.map((x) => (x.id === data.id ? data : x)));
 
   return (
     <AppRoot>
@@ -209,7 +213,7 @@ export function QuestionBuilder() {
             <Droppable id="droppable">
               <Preview elements={elements} />
             </Droppable>
-            <SideBar elements={elements} updateParagraph={updateParagraph} updateMCQ={updateMCQ} />
+            <SideBar elements={elements} updateElement={updateElement} />
           </Flex>
         </DragDropProvider>
       </PageShell>
