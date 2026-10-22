@@ -17,41 +17,19 @@ interface HasId {
   id: string;
 }
 
-type Paragraph = HasId & {
-  text: string;
+interface Text extends HasId {
+  value: string;
+};
+type Paragraph = Text & {
   kind: "paragraph";
 };
 type MCQ = Question & {
   kind: "multiple-choice";
 };
 
+type Option = Question["options"][number];
+
 type Element = Paragraph | MCQ;
-
-interface ParagraphInputs {
-  text: string;
-}
-
-function ParagraphEditor({
-  paragraph,
-  updateParagraph,
-}: {
-  paragraph: Paragraph;
-  updateParagraph: (id: string, text: string) => void;
-}) {
-  const { register, handleSubmit } = useForm<ParagraphInputs>();
-  const onSubmit = handleSubmit((data) => updateParagraph(paragraph.id, data.text));
-
-  return (
-    <div>
-      {paragraph.id} {paragraph.kind}
-      <form onSubmit={onSubmit}>
-        <label htmlFor="para">Text:</label>
-
-        <input {...register("text")} />
-      </form>
-    </div>
-  );
-}
 
 function MultipleChoiceEditor({
   mcq,
@@ -60,9 +38,6 @@ function MultipleChoiceEditor({
   mcq: MCQ;
   updateMCQ: (data: Question) => void;
 }) {
-  const { register, handleSubmit } = useForm<Omit<Question, "id">>({ defaultValues: mcq });
-  const onSubmit = handleSubmit((data) => updateMCQ({ ...data, id: mcq.id }));
-
   const addOption = () =>
     updateMCQ({
       ...mcq,
@@ -72,19 +47,51 @@ function MultipleChoiceEditor({
       ],
     });
 
+  const updateOption = (data: Option) =>
+    updateMCQ({ ...mcq, options: mcq.options.map((opt) => (opt.id == data.id ? data : opt)) });
+
+  const updatePrompt: (text: Text) => void = (text) => updateMCQ({ ...mcq, prompt: text.value });
+
   return (
     <div>
       {mcq.id} {mcq.kind}
-      <form onSubmit={onSubmit}>
-        <label>Prompt:</label>
-        <input {...register("prompt")} />
-      </form>
+      <TextEditor
+        label="Prompt: "
+        text={{ id: mcq.id, value: mcq.prompt }}
+        updateText={updatePrompt}
+      />
+      {mcq.options.map((opt) => (
+        <TextEditor label="Option: " text={opt} updateText={updateOption} />
+      ))}
       <Button onClick={addOption}> Add option </Button>
     </div>
   );
 }
 
-type UpdateParagraph = (id: string, text: string) => void;
+
+function TextEditor({
+  label,
+  text,
+  updateText,
+}: {
+  label: string;
+  text: Text;
+  updateText: (text: Text) => void;
+}) {
+  const { register, handleSubmit } = useForm<Option>({ defaultValues: text });
+  const onSubmit = handleSubmit(updateText);
+
+  return (
+    <form onSubmit={onSubmit}>
+      <label>
+        {label} {text.id}
+      </label>
+      <input {...register("value")} />
+    </form>
+  );
+}
+
+type UpdateParagraph = (text: Text) => void;
 type UpdateMCQ = (data: Question) => void;
 
 function SideBar({
@@ -107,11 +114,7 @@ function SideBar({
             el.kind !== "paragraph" ? (
               <MultipleChoiceEditor key={el.id} mcq={el} updateMCQ={updateMCQ} />
             ) : (
-              <ParagraphEditor
-                key={el.id}
-                paragraph={el}
-                updateParagraph={(id, text) => updateParagraph(id, text)}
-              />
+<TextEditor key={el.id} label="Paragraph: " text={el} updateText={updateParagraph}/>
             ),
           )}
         </VStack>
@@ -127,7 +130,7 @@ function Preview({ elements }: { elements: Element[] }) {
       {elements.map((x) =>
         x.kind == "paragraph" ? (
           <div key={x.id}>
-            Paragraph, id: {x.id}, text: {x.text}
+            Paragraph, id: {x.id}, text: {x.value}
           </div>
         ) : (
           <Fragment key={x.id}>
@@ -142,8 +145,8 @@ function Preview({ elements }: { elements: Element[] }) {
 
 export function QuestionBuilder() {
   const [elements, setElements] = useState<Element[]>([]);
-  const updateParagraph: UpdateParagraph = (id, text) => {
-    setElements((xs) => xs.map((x) => (x.id === id ? { id, text, kind: "paragraph" } : x)));
+  const updateParagraph: UpdateParagraph = (text) => {
+    setElements((xs) => xs.map((x) => (x.id === text.id ? { ...text, kind: "paragraph" } : x)));
   };
 
   const updateMCQ: UpdateMCQ = (data) =>
@@ -168,7 +171,7 @@ export function QuestionBuilder() {
               const id = crypto.randomUUID();
               setElements((xs) => [
                 ...xs,
-                { id, text: "Placeholder paragraph", kind: "paragraph" },
+                { id, value: "Placeholder paragraph", kind: "paragraph" },
               ]);
             } else {
               const id = crypto.randomUUID();
