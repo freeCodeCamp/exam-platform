@@ -17,16 +17,17 @@ Questions
 
 ### `apps/auth-api`
 
-| Name                        | Required            | Default         | Where Set                                            | Description                                                                          |
-| --------------------------- | ------------------- | --------------- | ---------------------------------------------------- | ------------------------------------------------------------------------------------ |
-| `ENVIRONMENT`               | yes                 |                 | `.env`, Komodo (`staging`)                           | `development`, `staging` or `production`. Release images refuse to start without it. |
-| `SENTRY_DSN`                | outside development | empty           | `.env`, Komodo (`EXAM_PLATFORM_AUTH_API_SENTRY_DSN`) | Sentry project DSN.                                                                  |
-| `SENTRY_TRACES_SAMPLE_RATE` | no                  | `0.2`           | `.env`                                               | Sentry trace sampling rate.                                                          |
-| `RUST_LOG`                  | no                  | `info`          | `.env`                                               | Filters what reaches stdout (development) and Sentry.                                |
-| `AAPI_PORT`                 | no                  | `13001`         | `.env`                                               | Host port on `127.0.0.1`. Container always listens on `13001`.                       |
-| `LISTEN_ADDR`               | no                  | `0.0.0.0:13001` | `compose.yaml`, `Dockerfile`                         | Bind address. Do not change: baked into image.                                       |
-| `PLATFORM_NETWORK`          | no                  | `platform`      | `.env`                                               | Shared external Docker network name.                                                 |
-| `IMAGE`                     | no                  | empty           | `.env`, Komodo (`EXAM_PLATFORM_AUTH_API_IMAGE`)      | Release image to run. Empty builds from source. Komodo sets on deploys.              |
+| Name                        | Required            | Default         | Where Set                                                  | Description                                                                                                                                      |
+| --------------------------- | ------------------- | --------------- | ---------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `ENVIRONMENT`               | yes                 |                 | `.env`, Komodo (`staging`)                                 | `development`, `staging` or `production`. Release images refuse to start without it.                                                             |
+| `SENTRY_DSN`                | outside development | empty           | `.env`, Komodo (`EXAM_PLATFORM_AUTH_API_SENTRY_DSN`)       | Sentry project DSN.                                                                                                                              |
+| `SENTRY_TRACES_SAMPLE_RATE` | no                  | `0.2`           | `.env`                                                     | Sentry trace sampling rate.                                                                                                                      |
+| `RUST_LOG`                  | no                  | `info`          | `.env`                                                     | Filters what reaches stdout (development) and Sentry.                                                                                            |
+| `AAPI_PORT`                 | no                  | `13001`         | `.env`                                                     | Host port on `127.0.0.1`. Container always listens on `13001`.                                                                                   |
+| `LISTEN_ADDR`               | no                  | `0.0.0.0:13001` | `compose.yaml`, `Dockerfile`                               | Bind address. Do not change: baked into image.                                                                                                   |
+| `MDB_DATABASE_URL`          | yes                 |                 | `.env`, Komodo (`EXAM_PLATFORM_AUTH_API_MDB_DATABASE_URL`) | mDb Postgres URL as owner `aapi`. Migrations run on startup; failure exits. Compose host `moderation-db`. Hosted: append `?sslmode=verify-full`. |
+| `PLATFORM_NETWORK`          | no                  | `platform`      | `.env`                                                     | Shared external Docker network name.                                                                                                             |
+| `IMAGE`                     | no                  | empty           | `.env`, Komodo (`EXAM_PLATFORM_AUTH_API_IMAGE`)            | Release image to run. Empty builds from source. Komodo sets on deploys.                                                                          |
 
 ### `apps/examiner-dashboard`
 
@@ -44,11 +45,12 @@ Questions
 | `GOOGLE_REDIRECT_URL`       | unless mock defaults apply | none                                 | Process environment, `.env` for Compose, Komodo                | Valid callback URL registered in Google Cloud: public HTTPS origin plus `/auth/google/callback`.                                                                                   |
 | `COOKIE_KEY`                | unless mock defaults apply | none                                 | Process environment, `.env` for Compose, Komodo                | Private-cookie key, at least 64 bytes. Generate with `openssl rand -hex 64`; keep secret and stable. Rotation invalidates cookies.                                                 |
 | `EDB_DATABASE_URL`          | yes                        | none                                 | Process environment, `.env` for Compose, Komodo                | eDb Postgres URL. Migrations run on startup; failure exits. Compose host `examiner-db`. Hosted: append `?sslmode=verify-full`.                                                     |
+| `MDB_DATABASE_URL`          | yes                        | none                                 | Process environment, `.env` for Compose, Komodo                | mDb Postgres URL as `edd`. Never migrates: exits unless aAPI has applied every migration this build embeds. Compose host `moderation-db`. Hosted: append `?sslmode=verify-full`.   |
 | `MOCK_AUTH`                 | no                         | `false`                              | Process environment                                            | Debug-only mock auth. Release builds reject `true`; Compose does not forward it. Defaults for OAuth/key fields apply only when unset, not empty.                                   |
 | `PLATFORM_NETWORK`          | no                         | `platform`                           | `.env`                                                         | Shared external Docker network name.                                                                                                                                               |
 | `IMAGE`                     | no                         | empty                                | `.env`, Komodo (`EXAM_PLATFORM_EXAMINER_DASHBOARD_IMAGE`)      | Release image to run. Empty builds from source. Komodo sets on deploys.                                                                                                            |
 
-Native dashboard execution needs exported environment variables; copying `.env` alone does not load them. See [dashboard setup](../../apps/examiner-dashboard/README.md#setup). Mock mode defaults to test credentials/key and `http://127.0.0.1:13002/auth/google/callback`. Both need a running eDb: see [databases/examiner](../../databases/examiner/README.md).
+Native dashboard execution needs exported environment variables; copying `.env` alone does not load them. See [dashboard setup](../../apps/examiner-dashboard/README.md#setup). Mock mode defaults to test credentials/key and `http://127.0.0.1:13002/auth/google/callback`. Both need a running eDb and mDb: see [databases/examiner](../../databases/examiner/README.md) and [databases/moderation](../../databases/moderation/README.md).
 
 ### `apps/web-app`
 
@@ -101,14 +103,18 @@ Per app, `EXAM_PLATFORM_<APP>_`, with `<APP>` one of `AUTH_API`, `EXAMINER_DASHB
 
 Dashboard also requires these Komodo Variables (no defaults):
 
-| Name                                                   | Description                                           |
-| ------------------------------------------------------ | ----------------------------------------------------- |
-| `EXAM_PLATFORM_EXAMINER_DASHBOARD_GOOGLE_OAUTH_ID`     | Passed as `GOOGLE_OAUTH_ID`.                          |
-| `EXAM_PLATFORM_EXAMINER_DASHBOARD_GOOGLE_OAUTH_SECRET` | Secret; passed as `GOOGLE_OAUTH_SECRET`.              |
-| `EXAM_PLATFORM_EXAMINER_DASHBOARD_GOOGLE_REDIRECT_URL` | Registered callback; passed as `GOOGLE_REDIRECT_URL`. |
-| `EXAM_PLATFORM_EXAMINER_DASHBOARD_COOKIE_KEY`          | Secret; passed as `COOKIE_KEY`.                       |
-| `EXAM_PLATFORM_EXAMINER_DASHBOARD_EDB_DATABASE_URL`    | Secret; passed as `EDB_DATABASE_URL`.                 |
-| `EXAM_PLATFORM_EXAMINER_DB_PASSWORD`                   | Secret; eDb stack passes it as `EDB_PASSWORD`.        |
+| Name                                                   | Description                                                                   |
+| ------------------------------------------------------ | ----------------------------------------------------------------------------- |
+| `EXAM_PLATFORM_EXAMINER_DASHBOARD_GOOGLE_OAUTH_ID`     | Passed as `GOOGLE_OAUTH_ID`.                                                  |
+| `EXAM_PLATFORM_EXAMINER_DASHBOARD_GOOGLE_OAUTH_SECRET` | Secret; passed as `GOOGLE_OAUTH_SECRET`.                                      |
+| `EXAM_PLATFORM_EXAMINER_DASHBOARD_GOOGLE_REDIRECT_URL` | Registered callback; passed as `GOOGLE_REDIRECT_URL`.                         |
+| `EXAM_PLATFORM_EXAMINER_DASHBOARD_COOKIE_KEY`          | Secret; passed as `COOKIE_KEY`.                                               |
+| `EXAM_PLATFORM_EXAMINER_DASHBOARD_EDB_DATABASE_URL`    | Secret; passed as `EDB_DATABASE_URL`.                                         |
+| `EXAM_PLATFORM_EXAMINER_DASHBOARD_MDB_DATABASE_URL`    | Secret; passed as `MDB_DATABASE_URL`.                                         |
+| `EXAM_PLATFORM_EXAMINER_DB_PASSWORD`                   | Secret; eDb stack passes it as `EDB_PASSWORD`.                                |
+| `EXAM_PLATFORM_AUTH_API_MDB_DATABASE_URL`              | Secret; aAPI stack passes it as `MDB_DATABASE_URL`.                           |
+| `EXAM_PLATFORM_MODERATION_DB_PASSWORD`                 | Secret; mDb stack passes it as `MDB_PASSWORD` (owner `aapi`).                 |
+| `EXAM_PLATFORM_MODERATION_DB_EDD_PASSWORD`             | Secret; mDb stack passes it as `MDB_EDD_PASSWORD` (`edd`, empty volume only). |
 
 ### GitHub Actions
 

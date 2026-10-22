@@ -15,7 +15,8 @@
         "apps/desktop-app",
         "apps/examiner-dashboard",
         "apps/web-app",
-        "databases",
+        "databases/curriculum",
+        "databases/examiner",
         "deploy",
         "docs",
         "release-please"

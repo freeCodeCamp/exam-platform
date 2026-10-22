@@ -41,6 +41,7 @@ jobs:
               - Cargo.lock
               - libs/**
               - databases/examiner/**
+              - databases/moderation/**
             bun-lock: &bun-lock
               - package.json
               - bun.lock
@@ -87,7 +88,7 @@ jobs:
     permissions:
       contents: read
     services:
-      # For edb's #[sqlx::test]s, which create a database per test.
+      # For edb and mdb #[sqlx::test]s, which create a database per test.
       postgres:
         image: postgres:18.6-trixie
         env:

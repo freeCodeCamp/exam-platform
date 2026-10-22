@@ -1,0 +1,31 @@
+# mDb. Run from this directory: `docker compose up -d`. Production moves to hosted Postgres.
+services:
+  moderation-db:
+    image: postgres:18.6-trixie
+    restart: unless-stopped
+    ports: ["127.0.0.1:${MDB_PORT:-15433}:5432"]
+    environment:
+      POSTGRES_DB: moderation
+      # aAPI owns the schema: its embedded migrations need DDL.
+      POSTGRES_USER: aapi
+      POSTGRES_PASSWORD: ${MDB_PASSWORD:?set MDB_PASSWORD}
+      # Read by initdb/edd.sh, on an empty volume only.
+      MDB_EDD_PASSWORD: ${MDB_EDD_PASSWORD:?set MDB_EDD_PASSWORD}
+    volumes:
+      # Postgres 18+ keeps PGDATA in a major-version subdirectory of this mount.
+      - moderation-db:/var/lib/postgresql
+      - ./initdb:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "aapi", "-d", "moderation"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      platform:
+        aliases: [moderation-db]
+volumes:
+  moderation-db:
+networks:
+  platform:
+    name: ${PLATFORM_NETWORK:-platform}
+    external: true

@@ -22,6 +22,7 @@ COPY apps/auth-api apps/auth-api
 COPY apps/examiner-dashboard apps/examiner-dashboard
 COPY libs libs
 COPY databases/examiner databases/examiner
+COPY databases/moderation databases/moderation
 # Checks `query!` macros against the committed .sqlx/, so the build needs no database.
 ENV SQLX_OFFLINE=true
 RUN --mount=type=cache,target=/usr/local/cargo/registry \

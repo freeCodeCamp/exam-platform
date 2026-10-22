@@ -4,14 +4,14 @@
 
 ### Prerequisites
 
-| Tool                                                              | Version                                   | For                                 |
-| ----------------------------------------------------------------- | ----------------------------------------- | ----------------------------------- |
-| [Rust](https://rustup.rs/)                                        | stable, `>= 1.95` (`rust-toolchain.toml`) | aAPI, eDd server, eDb, dApp backend |
-| [Bun](https://bun.sh/)                                            | `1.4.2` (CI)                              | wApp, eDd client, dApp frontend     |
-| [Docker](https://docs.docker.com/engine/install/)                 | with Compose                              | eDb, images                         |
-| [`sqlx-cli`](https://crates.io/crates/sqlx-cli)                   | `0.9.0`                                   | eDb migrations, `.sqlx/`            |
-| [Tauri prerequisites](https://v2.tauri.app/start/prerequisites/)  | Linux: webkit2gtk-4.1, libsoup-3          | dApp only                           |
-| [`mdbook`](https://rust-lang.github.io/mdBook/), `mdbook-mermaid` | `0.5.4`, `0.17.1` (CI)                    | docs only                           |
+| Tool                                                              | Version                                   | For                                      |
+| ----------------------------------------------------------------- | ----------------------------------------- | ---------------------------------------- |
+| [Rust](https://rustup.rs/)                                        | stable, `>= 1.95` (`rust-toolchain.toml`) | aAPI, eDd server, eDb, mDb, dApp backend |
+| [Bun](https://bun.sh/)                                            | `1.4.2` (CI)                              | wApp, eDd client, dApp frontend          |
+| [Docker](https://docs.docker.com/engine/install/)                 | with Compose                              | eDb, mDb, images                         |
+| [`sqlx-cli`](https://crates.io/crates/sqlx-cli)                   | `0.9.0`                                   | eDb, mDb migrations, `.sqlx/`            |
+| [Tauri prerequisites](https://v2.tauri.app/start/prerequisites/)  | Linux: webkit2gtk-4.1, libsoup-3          | dApp only                                |
+| [`mdbook`](https://rust-lang.github.io/mdBook/), `mdbook-mermaid` | `0.5.4`, `0.17.1` (CI)                    | docs only                                |
 
 ```bash
 # For working with database stuffs
@@ -36,7 +36,7 @@ docker network create platform
 Copy every example, then fill blanks:
 
 ```bash
-for d in apps/auth-api apps/examiner-dashboard apps/web-app apps/desktop-app databases/examiner; do
+for d in apps/auth-api apps/examiner-dashboard apps/web-app apps/desktop-app databases/examiner databases/moderation; do
   cp -n "$d/.env.example" "$d/.env"
 done
 ```
@@ -59,11 +59,13 @@ cargo run -p auth-api
 
 Or use [`direnv`](https://direnv.net/): `echo dotenv > .envrc && direnv allow` in each app directory, then run `cargo` from there. `.envrc` is not in `.gitignore`; do not commit it.
 
-| File                           | Set                                                                                                                                     |
-| ------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------- |
-| `databases/examiner/.env`      | `EDB_PASSWORD`, and same password in `EDB_DATABASE_URL`                                                                                 |
-| `apps/examiner-dashboard/.env` | `EDB_DATABASE_URL` (same as above), `COOKIE_KEY` (`openssl rand -hex 64`), `GOOGLE_OAUTH_ID`, `GOOGLE_OAUTH_SECRET` ([Auth](./auth.md)) |
-| Others                         | Defaults work for `ENVIRONMENT=development`. `SENTRY_DSN` stays empty                                                                   |
+| File                           | Set                                                                                                                                                                                             |
+| ------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `databases/examiner/.env`      | `EDB_PASSWORD`, and same password in `EDB_DATABASE_URL`                                                                                                                                         |
+| `databases/moderation/.env`    | `MDB_PASSWORD`, `MDB_EDD_PASSWORD`, and `MDB_PASSWORD` in `MDB_DATABASE_URL`                                                                                                                    |
+| `apps/auth-api/.env`           | `MDB_DATABASE_URL` (same as above, owner `aapi`)                                                                                                                                                |
+| `apps/examiner-dashboard/.env` | `EDB_DATABASE_URL` (same as above), `MDB_DATABASE_URL` (as `edd`, with `MDB_EDD_PASSWORD`), `COOKIE_KEY` (`openssl rand -hex 64`), `GOOGLE_OAUTH_ID`, `GOOGLE_OAUTH_SECRET` ([Auth](./auth.md)) |
+| Others                         | Defaults work for `ENVIRONMENT=development`. `SENTRY_DSN` stays empty                                                                                                                           |
 
 All variables: [Environment Variables](./deployment/environment-variables.md).
 
@@ -78,6 +80,10 @@ set -a; source .env; set +a
 cargo sqlx migrate run
 ```
 
+### mDb
+
+aAPI runs migrations on startup; eDd only checks them, so start aAPI first. Same steps from `databases/moderation/`. Roles: [databases/moderation](../databases/moderation/README.md#roles).
+
 ### Editor
 
 VS Code: install recommended extensions (`.vscode/extensions.json`). Settings run clippy on save, set `ENVIRONMENT=development` for rust-analyzer, and link both Cargo workspaces.
@@ -86,15 +92,16 @@ VS Code: install recommended extensions (`.vscode/extensions.json`). Settings ru
 
 ### Run
 
-| App        | Command                                         | Port              |
-| ---------- | ----------------------------------------------- | ----------------- |
-| aAPI       | `cargo run -p auth-api`                         | `127.0.0.1:13001` |
-| eDd server | `cargo run -p examiner-dashboard`               | `127.0.0.1:13002` |
-| eDd client | `bun --filter examiner-dashboard-client dev`    | `127.0.0.1:13005` |
-| wApp       | `bun --filter web-app dev`                      | `127.0.0.1:13003` |
-| dApp       | `bun run dev:desktop`                           | `localhost:1420`  |
-| eDb        | `docker compose up -d` in `databases/examiner/` | `127.0.0.1:15432` |
-| Docs       | `mdbook watch` (or `mdbook serve`)              | `localhost:3000`  |
+| App        | Command                                           | Port              |
+| ---------- | ------------------------------------------------- | ----------------- |
+| aAPI       | `cargo run -p auth-api`                           | `127.0.0.1:13001` |
+| eDd server | `cargo run -p examiner-dashboard`                 | `127.0.0.1:13002` |
+| eDd client | `bun --filter examiner-dashboard-client dev`      | `127.0.0.1:13005` |
+| wApp       | `bun --filter web-app dev`                        | `127.0.0.1:13003` |
+| dApp       | `bun run dev:desktop`                             | `localhost:1420`  |
+| eDb        | `docker compose up -d` in `databases/examiner/`   | `127.0.0.1:15432` |
+| mDb        | `docker compose up -d` in `databases/moderation/` | `127.0.0.1:15433` |
+| Docs       | `mdbook watch` (or `mdbook serve`)                | `localhost:3000`  |
 
 `cargo run` rows need their `.env` exported first ([Environment](#environment)). `bun run dev` starts wApp and eDd client together. eDd client proxies `/api` to eDd server. wApp and dApp call aAPI at `AUTH_API_URL`.
 
@@ -135,7 +142,7 @@ Clippy `all` is `deny`. Format Rust with `rustfmt` (`rustfmt.toml`), eDd client 
 
 ### Database Changes
 
-eDb schema, migrations and queries live in crate `edb` (`databases/examiner/`). Run every step from that directory with eDb up (`docker compose up -d --wait`).
+eDb schema, migrations and queries live in crate `edb` (`databases/examiner/`); mDb in crate `mdb` (`databases/moderation/`, `MDB_DATABASE_URL`). Steps below use eDb; mDb is the same from its directory, plus its [grant rules](../databases/moderation/README.md#changing-the-schema). Run every step from that directory with the database up (`docker compose up -d --wait`).
 
 `sqlx-cli` reads `EDB_DATABASE_URL` from its `.env`; `cargo` does not, so export it first.
 
@@ -167,7 +174,7 @@ DATABASE_URL=$EDB_DATABASE_URL cargo test -p edb
 cargo sqlx prepare
 ```
 
-Pre-commit hook (`git config core.hooksPath .githooks`) runs this and stages `.sqlx/` on commit when eDb files are staged. It never blocks the commit: if it warns with `cargo sqlx prepare failed; .sqlx/ may be stale`, manually run step 6.
+Pre-commit hook (`git config core.hooksPath .githooks`) runs this and stages `.sqlx/` on commit when a database's files are staged. It never blocks the commit: if it warns with `cargo sqlx prepare failed; .sqlx/ may be stale`, manually run step 6.
 
 7. Commit migration, queries and `.sqlx/` together. Docker and CI build with `SQLX_OFFLINE=true`. CI's clippy fails on a stale `.sqlx/`.
 

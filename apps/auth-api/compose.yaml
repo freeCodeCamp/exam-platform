@@ -16,6 +16,7 @@ services:
       SENTRY_DSN: ${SENTRY_DSN:-}
       SENTRY_TRACES_SAMPLE_RATE: ${SENTRY_TRACES_SAMPLE_RATE:-0.2}
       RUST_LOG: ${RUST_LOG:-info}
+      MDB_DATABASE_URL: ${MDB_DATABASE_URL:?set MDB_DATABASE_URL}
     networks:
       platform:
         aliases: [auth-api]

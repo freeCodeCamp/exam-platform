@@ -35,9 +35,16 @@ pub async fn app(config: &AppConfig) -> Router {
         .await
         .expect("failed to connect to eDb and migrate");
 
+    // aAPI owns mDb. Panics, so the deploy rolls back, until aAPI applies the migrations this
+    // build embeds.
+    let moderation_database = mdb::Database::connect_checked(&config.mdb_database_url)
+        .await
+        .expect("failed to connect to mDb, or its migrations are behind this build");
+
     let server_state = ServerState {
         config: config.clone(),
         database,
+        moderation_database,
         http_client,
         google_client,
         pending_logins: PendingLogins::default(),

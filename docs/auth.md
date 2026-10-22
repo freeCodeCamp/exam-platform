@@ -27,14 +27,14 @@ graph LR
 
 ```mermaid
 graph LR
-  aAPI["aAPI"] -->|"aAPI DB user; authZ read/write candidates, attempts, responses, evidence"| mDb[("mDb")]
+  aAPI["aAPI"] -->|"aAPI DB user aapi (schema owner, runs migrations); authZ read/write candidates, attempts, responses, evidence"| mDb[("mDb")]
 ```
 
 ## eDd → mDb
 
 ```mermaid
 graph LR
-  eDd["eDd"] -->|"eDd DB user; authZ read candidate data, write moderation outcomes only"| mDb[("mDb")]
+  eDd["eDd"] -->|"eDd DB user edd (member of mdb_edd); authZ read candidate data, write moderation outcomes only"| mDb[("mDb")]
 ```
 
 ## eDd → eDb
