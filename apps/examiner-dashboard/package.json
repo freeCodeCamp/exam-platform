@@ -6,7 +6,8 @@
     "dev": "astro dev --host 127.0.0.1 --port 13005",
     "build": "astro check && astro build",
     "check": "astro check",
-    "fmt": "oxfmt"
+    "fmt": "oxfmt",
+    "test": "vitest"
   },
   "dependencies": {
     "@astrojs/react": "catalog:astro",
@@ -23,9 +24,14 @@
   "devDependencies": {
     "@astrojs/check": "catalog:astro",
     "@tanstack/react-query-devtools": "catalog:",
+    "@testing-library/dom": "catalog:astro",
+    "@testing-library/jest-dom": "catalog:astro",
+    "@testing-library/react": "catalog:astro",
     "@types/bun": "catalog:",
     "@types/react": "catalog:",
     "@types/react-dom": "catalog:",
-    "typescript": "catalog:astro"
+    "jsdom": "catalog:astro",
+    "typescript": "catalog:astro",
+    "vitest": "catalog:"
   }
 }
