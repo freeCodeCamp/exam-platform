@@ -1,4 +1,4 @@
-import { Box, Button, Flex, Text, VStack, Field, Input } from "@chakra-ui/react";
+import { Box, Button, Flex, Text, VStack, Field, Input, CloseButton } from "@chakra-ui/react";
 import { DragDropProvider } from "@dnd-kit/react";
 import { Fragment, useState } from "react";
 import { useForm } from "react-hook-form";
@@ -54,6 +54,12 @@ function MultipleChoiceEditor({
       options: element.options.map((opt) => (opt.id == data.id ? data : opt)),
     });
 
+  const deleteOption = ({ id }: { id: string }) =>
+    updateElement({
+      ...element,
+      options: element.options.filter((opt) => opt.id !== id),
+    });
+
   const updatePrompt: (text: Text) => void = (text) =>
     updateElement({ ...element, prompt: text.value });
 
@@ -68,6 +74,7 @@ function MultipleChoiceEditor({
       {element.options.length > 0 ? <Text>Options</Text> : null}
       {element.options.map((opt, id) => (
         <TextEditor
+          onDelete={deleteOption}
           key={opt.id}
           label={"" + id}
           text={opt}
@@ -84,11 +91,13 @@ function TextEditor({
   label,
   text,
   updateText,
+  onDelete,
   options,
 }: {
   label: string;
   text: Text;
   updateText: (text: Text) => void;
+  onDelete?: (x: { id: string }) => void;
   options?: {
     orientation?: "horizontal";
   };
@@ -106,6 +115,7 @@ function TextEditor({
       <Field.Root {...options}>
         <Field.Label>{label}</Field.Label>
         <Input {...register("value", { required: true })} />
+        {onDelete && <CloseButton onClick={() => onDelete(text)} />}
       </Field.Root>
     </form>
   );
