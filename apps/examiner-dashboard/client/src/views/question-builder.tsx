@@ -1,4 +1,4 @@
-import { Box, Button, Flex, Text, VStack } from "@chakra-ui/react";
+import { Box, Button, Flex, Text, VStack, Field, Input } from "@chakra-ui/react";
 import { DragDropProvider } from "@dnd-kit/react";
 import { Fragment, useState } from "react";
 import { useForm } from "react-hook-form";
@@ -59,14 +59,21 @@ function MultipleChoiceEditor({
 
   return (
     <div>
-      {element.id} {element.kind}
       <TextEditor
         label="Prompt: "
         text={{ id: element.id, value: element.prompt }}
         updateText={updatePrompt}
       />
-      {element.options.map((opt) => (
-        <TextEditor key={opt.id} label="Option: " text={opt} updateText={updateOption} />
+
+      {element.options.length > 0 ? <Text>Options</Text> : null}
+      {element.options.map((opt, id) => (
+        <TextEditor
+          key={opt.id}
+          label={"" + id}
+          text={opt}
+          updateText={updateOption}
+          options={{ orientation: "horizontal" }}
+        />
       ))}
       <Button onClick={addOption}> Add option </Button>
     </div>
@@ -77,10 +84,14 @@ function TextEditor({
   label,
   text,
   updateText,
+  options,
 }: {
   label: string;
   text: Text;
   updateText: (text: Text) => void;
+  options?: {
+    orientation?: "horizontal";
+  };
 }) {
   const { register, handleSubmit, getFieldState } = useForm<Option>({ defaultValues: text });
   const onSubmit = handleSubmit(updateText);
@@ -92,10 +103,10 @@ function TextEditor({
 
   return (
     <form onBlur={onBlur} onSubmit={onSubmit}>
-      <label>
-        {label} {text.id}
-      </label>
-      <input {...register("value", { required: true })} />
+      <Field.Root {...options}>
+        <Field.Label>{label}</Field.Label>
+        <Input {...register("value", { required: true })} />
+      </Field.Root>
     </form>
   );
 }
@@ -109,7 +120,7 @@ function ParagraphEditor({
 }) {
   const updateText = (text: Text) => updateElement({ ...text, kind: "paragraph" });
 
-  return <TextEditor label="Paragraph: " text={element} updateText={updateText} />;
+  return <TextEditor label="Content" text={element} updateText={updateText} />;
 }
 
 type UpdateElement = (el: Element) => void;
