@@ -1,0 +1,76 @@
+- type: multiple-choice
+  title: Meals at the Hotel
+  id: one
+  level: A1
+  language: en
+  instructionLanguage: en
+  variantGroup: cefr-a1-r01-hotel-meal-times
+  menuLabel: Meals at the Hotel
+  tags: [reading, blueprint-four-skills, "theme:daily_life", "cefr:143"]
+  estimatedMinutes: 3
+  passage: |
+    THE PARK HOTEL
+
+    Meals in the restaurant:
+    Breakfast: 7:00 – 10:00
+    Lunch: 12:00 – 14:00
+    Dinner: 18:00 – 21:00
+    The restaurant is on the first floor.
+
+    Lucy, let's meet in the restaurant at noon for lunch. See you there!
+    Ella
+  questions:
+    - prompt: "When can you have breakfast?"
+      options:
+        - value: "from 7:00 to 10:00"
+          id: "a"
+        - value: "from 12:00 to 14:00"
+          id: "b"
+        - value: "from 18:00 to 21:00"
+          id: "c"
+        - value: "at midnight"
+          id: "d"
+      correct: 0
+      id: "a"
+    - prompt: "Where is the restaurant?"
+      options:
+        - value: "on the first floor"
+          id: "a"
+        - value: "in the park"
+          id: "b"
+        - value: "in Lucy's room"
+          id: "c"
+        - value: "next to the hotel"
+          id: "d"
+      correct: 0
+      id: "b"
+    - prompt: "What time do Ella and Lucy meet?"
+      options:
+        - value: "at 12:00"
+          id: "a"
+        - value: "at 7:00"
+          id: "b"
+        - value: "at 18:00"
+          id: "c"
+        - value: "at 21:00"
+          id: "d"
+      correct: 0
+      id: "c"
+    - prompt: "Lucy gets up late. It is 10:30. Can she have breakfast in the restaurant?"
+      options:
+        - value: "No, it is too late."
+          id: "a"
+        - value: "Yes, at the hotel."
+          id: "b"
+        - value: "Yes, at noon."
+          id: "c"
+        - value: "No, it is dinner time."
+          id: "d"
+      correct: 0
+      id: "d"
+  teacherNotes: >
+    Questions 1, 2 and 4 read basic hotel information, meal times and where to eat (CEFR 143). Question 3 reads
+    a plan to meet ("let's meet ... at noon"), so the candidate understands an arrangement but does not make one;
+    I did not tag it as production evidence. It is A1 and not below because the candidate has to match "noon" to
+    12:00 and check 10:30 against the breakfast times, not just find a word that repeats. The note has no picture,
+    so 205 is not tagged.
