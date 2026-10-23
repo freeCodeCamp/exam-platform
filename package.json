@@ -19,7 +19,8 @@
       "oxlint-config-presets": "0.1.21",
       "oxlint-tsgolint": "7.0.2005",
       "react": "19.3.0",
-      "react-dom": "19.3.0"
+      "react-dom": "19.3.0",
+      "vitest": "5.0.5"
     },
     "catalogs": {
       "astro": {

@@ -33,6 +33,7 @@
     "oxlint": "catalog:",
     "oxlint-config-presets": "catalog:",
     "oxlint-tsgolint": "catalog:",
-    "typescript": "catalog:astro"
+    "typescript": "catalog:astro",
+    "vitest": "catalog:"
   }
 }
