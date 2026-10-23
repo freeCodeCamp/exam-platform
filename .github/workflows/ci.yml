@@ -184,6 +184,7 @@ jobs:
       - run: bun run check
       - run: bun run lint
       - run: bun run build
+      - run: bun run test
 
   docker:
     name: Docker (${{ matrix.app }})
