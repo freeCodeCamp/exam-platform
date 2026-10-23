@@ -134,21 +134,24 @@ function ParagraphEditor({
 }
 
 type UpdateElement = (el: Element) => void;
+type DeleteElement = (el: { id: string }) => void;
 
 function EnumeratedElement({ n, kind }: { n: number; kind: Kind }) {
   const paddedNumber = n < 10 ? "0" + n : "" + n;
 
   return (
-    <>
+    <Text alignContent={"center"}>
       {paddedNumber} {kind === "paragraph" ? "Paragraph" : "Multiple Choice"}
-    </>
+    </Text>
   );
 }
 
 function SideBar({
+  deleteElement,
   elements,
   updateElement,
 }: {
+  deleteElement: DeleteElement;
   elements: Element[];
   updateElement: UpdateElement;
 }) {
@@ -161,7 +164,10 @@ function SideBar({
         {elements.map((el, id) => (
           <Card.Root key={el.id}>
             <Card.Header>
-              <EnumeratedElement n={id + 1} kind={el.kind} />
+              <Flex justifyContent={"space-between"}>
+                <EnumeratedElement n={id + 1} kind={el.kind} />{" "}
+                <CloseButton onClick={() => deleteElement(el)} />
+              </Flex>
             </Card.Header>
             <Card.Body>
               {el.kind === "multiple-choice" ? (
@@ -197,6 +203,9 @@ export function QuestionBuilder() {
 
   const updateElement: UpdateElement = (data) =>
     setElements((xs) => xs.map((x) => (x.id === data.id ? data : x)));
+
+  const deleteElement = (el: { id: string }) =>
+    setElements((xs) => xs.filter((x) => x.id !== el.id));
 
   return (
     <AppRoot>
@@ -236,7 +245,11 @@ export function QuestionBuilder() {
             <Droppable id="droppable">
               <Preview elements={elements} />
             </Droppable>
-            <SideBar elements={elements} updateElement={updateElement} />
+            <SideBar
+              deleteElement={deleteElement}
+              elements={elements}
+              updateElement={updateElement}
+            />
           </Flex>
         </DragDropProvider>
       </PageShell>
