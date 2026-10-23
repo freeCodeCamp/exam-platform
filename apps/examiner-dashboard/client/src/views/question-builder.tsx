@@ -181,16 +181,11 @@ function Preview({ elements }: { elements: Element[] }) {
   return (
     <>
       Preview:
-      {elements.map((x) =>
-        x.kind == "paragraph" ? (
-          <div key={x.id}>
-            Paragraph, id: {x.id}, text: {x.value}
-          </div>
+      {elements.map((el) =>
+        el.kind == "paragraph" ? (
+          <p key={el.id}>{el.value}</p>
         ) : (
-          <Fragment key={x.id}>
-            MCQ: {x.id}
-            <MultipleChoice prompt={x.prompt} options={x.options} />
-          </Fragment>
+          <MultipleChoice key={el.id} prompt={el.prompt} options={el.options} />
         ),
       )}
     </>
