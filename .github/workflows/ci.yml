@@ -183,6 +183,7 @@ jobs:
       - run: bun install --frozen-lockfile
       - run: bun run check
       - run: bun run build
+      - run: bun run test
 
   docker:
     name: Docker (${{ matrix.app }})
