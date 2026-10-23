@@ -82,15 +82,20 @@ function TextEditor({
   text: Text;
   updateText: (text: Text) => void;
 }) {
-  const { register, handleSubmit } = useForm<Option>({ defaultValues: text });
+  const { register, handleSubmit, getFieldState } = useForm<Option>({ defaultValues: text });
   const onSubmit = handleSubmit(updateText);
+  const onBlur: React.FocusEventHandler = (e) => {
+    if (!getFieldState("value").invalid) {
+      onSubmit(e);
+    }
+  };
 
   return (
-    <form onSubmit={onSubmit}>
+    <form onBlur={onBlur} onSubmit={onSubmit}>
       <label>
         {label} {text.id}
       </label>
-      <input {...register("value")} />
+      <input {...register("value", { required: true })} />
     </form>
   );
 }
