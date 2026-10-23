@@ -45,7 +45,8 @@
     "build": "bun --filter '*' build",
     "check": "bun --filter '*' check",
     "lint": "bun --filter '*' lint",
-    "prepare": "husky"
+    "prepare": "husky",
+    "test": "bun --filter '*' test"
   },
   "devDependencies": {
     "husky": "9.1.7",
