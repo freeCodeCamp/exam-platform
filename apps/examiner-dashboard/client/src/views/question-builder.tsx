@@ -1,4 +1,4 @@
-import { Box, Button, Flex, Text, VStack, Field, Input, CloseButton } from "@chakra-ui/react";
+import { Box, Button, Flex, Text, VStack, Field, Input, CloseButton, Card } from "@chakra-ui/react";
 import { DragDropProvider } from "@dnd-kit/react";
 import { Fragment, useState } from "react";
 import { useForm } from "react-hook-form";
@@ -158,18 +158,20 @@ function SideBar({
       <Draggable id="multipleChoice" />
       <Box>
         Page:
-        <VStack>
-          {elements.map((el, id) => (
-            <Fragment key={el.id}>
+        {elements.map((el, id) => (
+          <Card.Root key={el.id}>
+            <Card.Header>
               <EnumeratedElement n={id + 1} kind={el.kind} />
+            </Card.Header>
+            <Card.Body>
               {el.kind === "multiple-choice" ? (
                 <MultipleChoiceEditor element={el} updateElement={updateElement} />
               ) : (
                 <ParagraphEditor element={el} updateElement={updateElement} />
               )}
-            </Fragment>
-          ))}
-        </VStack>
+            </Card.Body>
+          </Card.Root>
+        ))}
       </Box>
     </VStack>
   );
