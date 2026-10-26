@@ -160,7 +160,7 @@ function SideBar({
   return (
     <VStack border="md" flexGrow={0.5}>
       <Draggable id="paragraph" />
-      <Draggable id="multipleChoice" />
+      <Draggable id="multiple-choice" />
       <Box>
         Page:
         {elements.map((el, id) => (
