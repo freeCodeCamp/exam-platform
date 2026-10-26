@@ -1,6 +1,6 @@
 import { Box, Button, Flex, Text, VStack, Field, Input, CloseButton, Card } from "@chakra-ui/react";
 import { DragDropProvider } from "@dnd-kit/react";
-import { Fragment, useState } from "react";
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 
 import type { CollectionEntry } from "astro:content";
@@ -31,6 +31,8 @@ type Option = Question["options"][number];
 
 type Element = Paragraph | MCQ;
 type Kind = Element["kind"];
+
+const kinds: Kind[] = ["paragraph", "multiple-choice"];
 
 function MultipleChoiceEditor({
   element,
@@ -198,6 +200,32 @@ function Preview({ elements }: { elements: Element[] }) {
   );
 }
 
+const paragraphElement = (id: string): Paragraph => ({
+  id,
+  value: "Placeholder paragraph",
+  kind: "paragraph",
+});
+const multipleChoiceElement = (id: string): MCQ => ({
+  id,
+  prompt: "Placeholder prompt",
+  correct: 0,
+  options: [],
+  kind: "multiple-choice",
+});
+
+const newElement = (id: string, kind: Kind): Element => {
+  switch (kind) {
+    case "paragraph":
+      return paragraphElement(id);
+    case "multiple-choice":
+      return multipleChoiceElement(id);
+  }
+};
+
+function isKind(x?: unknown): x is Kind {
+  return kinds.includes(x as Kind);
+}
+
 export function QuestionBuilder() {
   const [elements, setElements] = useState<Element[]>([]);
 
@@ -206,6 +234,12 @@ export function QuestionBuilder() {
 
   const deleteElement = (el: { id: string }) =>
     setElements((xs) => xs.filter((x) => x.id !== el.id));
+
+  const createElement = (kind: Kind) =>
+    setElements((xs) => {
+      const id = crypto.randomUUID();
+      return [...xs, newElement(id, kind)];
+    });
 
   return (
     <AppRoot>
@@ -219,26 +253,11 @@ export function QuestionBuilder() {
             if (!event.operation.target) return;
 
             const { source } = event.operation;
+            const kind = source?.id;
 
-            if (source?.id == "paragraph") {
-              const id = crypto.randomUUID();
-              setElements((xs) => [
-                ...xs,
-                { id, value: "Placeholder paragraph", kind: "paragraph" },
-              ]);
-            } else {
-              const id = crypto.randomUUID();
-              setElements((xs) => [
-                ...xs,
-                {
-                  id,
-                  prompt: "Placeholder prompt",
-                  correct: 0,
-                  options: [],
-                  kind: "multiple-choice",
-                },
-              ]);
-            }
+            if (!isKind(kind)) throw Error("invalid element type: " + kind);
+
+            createElement(kind);
           }}
         >
           <Flex justify={"space-between"}>
