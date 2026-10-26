@@ -1,18 +1,8 @@
 ---
-// import { getEntry } from "astro:content";
-
+import Base from "@/layouts/base.astro";
 import { QuestionBuilder } from "@/views/question-builder";
-
-// const aQuestion = await getEntry("questions", "one");
 ---
 
-<html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Question builder</title>
-  </head>
-  <body>
-    <QuestionBuilder client:load />
-  </body>
-</html>
+<Base title="Question Builder">
+  <QuestionBuilder client:load />
+</Base>
