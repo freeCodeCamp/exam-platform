@@ -1,7 +1,27 @@
-import { Box, Button, Flex, Text, VStack, Field, Input, CloseButton, Card } from "@chakra-ui/react";
+import {
+  Box,
+  Button,
+  Center,
+  Flex,
+  Heading,
+  HStack,
+  Text,
+  VStack,
+  Field,
+  Input,
+  CloseButton,
+  Card,
+} from "@chakra-ui/react";
 import { DragDropProvider } from "@dnd-kit/react";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
+import type { IconType } from "react-icons";
+import {
+  LuGripVertical,
+  LuListChecks,
+  LuMousePointerClick,
+  LuPilcrow,
+} from "react-icons/lu";
 
 import type { CollectionEntry } from "astro:content";
 
@@ -33,6 +53,25 @@ type Element = Paragraph | MultipleChoiceQuestion;
 type Kind = Element["kind"];
 
 const kinds: Kind[] = ["paragraph", "multiple-choice"];
+
+// TODO: Move to own module
+const kindMeta: Record<
+  Kind,
+  { label: string; description: string; icon: IconType; palette: string }
+> = {
+  paragraph: {
+    label: "Paragraph",
+    description: "Text shown to the candidate",
+    icon: LuPilcrow,
+    palette: "blue",
+  },
+  "multiple-choice": {
+    label: "Multiple Choice",
+    description: "Prompt with selectable options",
+    icon: LuListChecks,
+    palette: "purple",
+  },
+};
 
 function MultipleChoiceEditor({
   element,
@@ -104,7 +143,9 @@ function TextEditor({
     orientation?: "horizontal";
   };
 }) {
-  const { register, handleSubmit, getFieldState } = useForm<Option>({ defaultValues: text });
+  const { register, handleSubmit, getFieldState } = useForm<Option>({
+    defaultValues: text,
+  });
   const onSubmit = handleSubmit(updateText);
   const onBlur: React.FocusEventHandler = (e) => {
     if (!getFieldState("value").invalid) {
@@ -130,7 +171,8 @@ function ParagraphEditor({
   element: Paragraph;
   updateElement: UpdateElement;
 }) {
-  const updateText = (text: Text) => updateElement({ ...text, kind: "paragraph" });
+  const updateText = (text: Text) =>
+    updateElement({ ...text, kind: "paragraph" });
 
   return <TextEditor label="Content" text={element} updateText={updateText} />;
 }
@@ -140,11 +182,85 @@ type DeleteElement = (el: { id: string }) => void;
 
 function EnumeratedElement({ n, kind }: { n: number; kind: Kind }) {
   const paddedNumber = n < 10 ? "0" + n : "" + n;
+  const { label, icon: Icon } = kindMeta[kind];
 
   return (
-    <Text alignContent={"center"}>
-      {paddedNumber} {kind === "paragraph" ? "Paragraph" : "Multiple Choice"}
-    </Text>
+    <HStack gap="2" color="colorPalette.fg">
+      <Text fontFamily="mono" textStyle="sm" color="fg.muted">
+        {paddedNumber}
+      </Text>
+      <Icon />
+      <Text fontWeight="semibold">{label}</Text>
+    </HStack>
+  );
+}
+
+function BlockItem({ kind }: { kind: Kind }) {
+  const { label, description, icon: Icon, palette } = kindMeta[kind];
+
+  return (
+    <Draggable
+      id={kind}
+      colorPalette={palette}
+      display="flex"
+      alignItems="center"
+      gap="3"
+      p="3"
+      bg="colorPalette.subtle"
+      borderWidth="1px"
+      borderColor="colorPalette.muted"
+      cursor="grab"
+      userSelect="none"
+      transition="all 0.15s"
+      _hover={{
+        borderColor: "colorPalette.solid",
+        shadow: "md",
+        transform: "translateY(-1px)",
+      }}
+      _active={{ cursor: "grabbing" }}
+      css={{
+        "&[data-dnd-dragging]": {
+          cursor: "grabbing",
+          shadow: "lg",
+          borderColor: "colorPalette.solid",
+        },
+        "&[data-dnd-placeholder]": { opacity: 0.4, borderStyle: "dashed" },
+      }}
+    >
+      <Center
+        boxSize="10"
+        flexShrink={0}
+        bg="colorPalette.solid"
+        color="colorPalette.contrast"
+      >
+        <Icon size="20" />
+      </Center>
+      <Box flex="1" minW="0">
+        <Text fontWeight="semibold" color="colorPalette.fg">
+          {label}
+        </Text>
+        <Text textStyle="xs" color="fg.muted">
+          {description}
+        </Text>
+      </Box>
+      <Box color="colorPalette.fg" opacity={0.6}>
+        <LuGripVertical />
+      </Box>
+    </Draggable>
+  );
+}
+
+function SectionHeading({ children }: { children: React.ReactNode }) {
+  return (
+    <Heading
+      as="h2"
+      textStyle="xs"
+      fontWeight="semibold"
+      textTransform="uppercase"
+      color="fg.muted"
+    >
+      {children}
+    </Heading>
   );
 }
 
@@ -158,45 +274,91 @@ function SideBar({
   updateElement: UpdateElement;
 }) {
   return (
-    <VStack border="md" flexGrow={0.5}>
-      <Draggable id="paragraph" />
-      <Draggable id="multiple-choice" />
-      <Box>
-        Page:
+    <VStack
+      as="aside"
+      align="stretch"
+      gap="6"
+      w="sm"
+      flexShrink={0}
+      bg="bg.subtle"
+      borderStartWidth="1px"
+      p="4"
+      overflow="auto"
+    >
+      <VStack align="stretch" gap="2">
+        <SectionHeading>Blocks</SectionHeading>
+        {kinds.map((kind) => (
+          <BlockItem key={kind} kind={kind} />
+        ))}
+      </VStack>
+      <VStack align="stretch" gap="3">
+        <SectionHeading>Page ({elements.length})</SectionHeading>
+        {elements.length === 0 && (
+          <Text textStyle="sm" color="fg.muted">
+            No blocks yet.
+          </Text>
+        )}
         {elements.map((el, id) => (
-          <Card.Root key={el.id}>
+          <Card.Root
+            key={el.id}
+            size="sm"
+            colorPalette={kindMeta[el.kind].palette}
+            borderStartWidth="4px"
+            borderStartColor="colorPalette.solid"
+          >
             <Card.Header>
-              <Flex justifyContent={"space-between"}>
-                <EnumeratedElement n={id + 1} kind={el.kind} />{" "}
-                <CloseButton onClick={() => deleteElement(el)} />
+              <Flex justifyContent={"space-between"} align="center">
+                <EnumeratedElement n={id + 1} kind={el.kind} />
+                <CloseButton size="sm" onClick={() => deleteElement(el)} />
               </Flex>
             </Card.Header>
             <Card.Body>
               {el.kind === "multiple-choice" ? (
-                <MultipleChoiceEditor element={el} updateElement={updateElement} />
+                <MultipleChoiceEditor
+                  element={el}
+                  updateElement={updateElement}
+                />
               ) : (
                 <ParagraphEditor element={el} updateElement={updateElement} />
               )}
             </Card.Body>
           </Card.Root>
         ))}
-      </Box>
+      </VStack>
     </VStack>
   );
 }
 
 function Preview({ elements }: { elements: Element[] }) {
+  if (elements.length === 0) {
+    return (
+      <Center
+        flexDirection="column"
+        gap="2"
+        minH="60"
+        borderWidth="2px"
+        borderStyle="dashed"
+        borderColor="colorPalette.muted"
+        color="fg.muted"
+      >
+        <Box color="colorPalette.fg">
+          <LuMousePointerClick size="28" />
+        </Box>
+        <Text>Drag blocks from the right.</Text>
+      </Center>
+    );
+  }
+
   return (
-    <>
-      Preview:
+    <VStack align="stretch" gap="4">
       {elements.map((el) =>
         el.kind == "paragraph" ? (
-          <p key={el.id}>{el.value}</p>
+          <Text key={el.id}>{el.value}</Text>
         ) : (
           <MultipleChoice key={el.id} prompt={el.prompt} options={el.options} />
         ),
       )}
-    </>
+    </VStack>
   );
 }
 
@@ -243,8 +405,11 @@ export function QuestionBuilder() {
 
   return (
     <AppRoot>
-      <PageShell title="Question Builder">
-        <Text>Author exams.</Text>
+      <PageShell
+        title="Question Builder"
+        description="Author exams."
+        path="/question-builder"
+      >
         <DragDropProvider
           onDragEnd={(event) => {
             // e.g. if the user presses Escape
@@ -260,9 +425,29 @@ export function QuestionBuilder() {
             createElement(kind);
           }}
         >
-          <Flex justify={"space-between"}>
-            <Droppable id="droppable">
-              <Preview elements={elements} />
+          <Flex h="full">
+            <Droppable
+              id="droppable"
+              flex="1"
+              minW="0"
+              p="8"
+              overflow="auto"
+              bg="bg.muted"
+              transition="background 0.15s"
+              css={{ "&[data-drop-target]": { bg: "colorPalette.subtle" } }}
+            >
+              <Box
+                mx="auto"
+                p="8"
+                bg="bg"
+                shadow="sm"
+                borderWidth="1px"
+                css={{
+                  "[data-drop-target] &": { borderColor: "colorPalette.solid" },
+                }}
+              >
+                <Preview elements={elements} />
+              </Box>
             </Droppable>
             <SideBar
               deleteElement={deleteElement}
