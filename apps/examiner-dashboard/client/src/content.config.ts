@@ -22,7 +22,9 @@ const questionSchema = z.object({
           },
           { message: "Duplicate options are not allowed" },
         ),
-      correct: z.number(),
+      correct: z
+        .int()
+        .refine((x) => x >= 0, { message: "The correct answer must be a non-negative integer" }),
       id: z.string(),
     }),
   ),
