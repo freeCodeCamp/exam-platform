@@ -23,13 +23,13 @@ interface Text extends HasId {
 type Paragraph = Text & {
   kind: "paragraph";
 };
-type MCQ = Question & {
+type MultipleChoiceQuestion = Question & {
   kind: "multiple-choice";
 };
 
 type Option = Question["options"][number];
 
-type Element = Paragraph | MCQ;
+type Element = Paragraph | MultipleChoiceQuestion;
 type Kind = Element["kind"];
 
 const kinds: Kind[] = ["paragraph", "multiple-choice"];
@@ -38,7 +38,7 @@ function MultipleChoiceEditor({
   element,
   updateElement,
 }: {
-  element: MCQ;
+  element: MultipleChoiceQuestion;
   updateElement: UpdateElement;
 }) {
   const addOption = () =>
@@ -205,7 +205,7 @@ const paragraphElement = (id: string): Paragraph => ({
   value: "Placeholder paragraph",
   kind: "paragraph",
 });
-const multipleChoiceElement = (id: string): MCQ => ({
+const multipleChoiceElement = (id: string): MultipleChoiceQuestion => ({
   id,
   prompt: "Placeholder prompt",
   correct: 0,
