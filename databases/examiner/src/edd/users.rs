@@ -25,7 +25,7 @@ impl Database {
     pub async fn find_user_by_email(&self, email: &str) -> Result<Option<User>, sqlx::Error> {
         sqlx::query_as!(
             User,
-            "SELECT id, name, email, google_id, picture FROM users WHERE lower(email) = lower($1)",
+            "SELECT id, name, email, google_id, picture FROM edd.users WHERE lower(email) = lower($1)",
             email
         )
         .fetch_optional(&self.pool)
@@ -36,7 +36,7 @@ impl Database {
     pub async fn insert_user(&self, user: NewUser) -> Result<User, sqlx::Error> {
         sqlx::query_as!(
             User,
-            "INSERT INTO users (name, email, google_id, picture) VALUES ($1, $2, $3, $4)
+            "INSERT INTO edd.users (name, email, google_id, picture) VALUES ($1, $2, $3, $4)
             RETURNING id, name, email, google_id, picture",
             user.name,
             user.email,
@@ -55,7 +55,7 @@ impl Database {
         picture: Option<&str>,
     ) -> Result<(), sqlx::Error> {
         sqlx::query!(
-            "UPDATE users SET google_id = $2, picture = $3, updated_at = now() WHERE id = $1",
+            "UPDATE edd.users SET google_id = $2, picture = $3, updated_at = now() WHERE id = $1",
             user_id,
             google_id,
             picture
@@ -72,6 +72,7 @@ mod tests {
     use sqlx::PgPool;
 
     use super::*;
+    use crate::testing::*;
 
     fn new_user(email: &str) -> NewUser {
         NewUser {
@@ -82,9 +83,10 @@ mod tests {
         }
     }
 
-    #[sqlx::test]
+    #[sqlx::test(migrations = false)]
     async fn finds_user_by_email_case_insensitively(pool: PgPool) -> sqlx::Result<()> {
-        let db = Database::from_pool(pool);
+        setup(&pool).await?;
+        let db = database_as(&pool, Role::Edd).await?;
         let user = db.insert_user(new_user("Camper@freecodecamp.org")).await?;
 
         let found = db.find_user_by_email("camper@FREECODECAMP.org").await?;
@@ -93,9 +95,10 @@ mod tests {
         Ok(())
     }
 
-    #[sqlx::test]
+    #[sqlx::test(migrations = false)]
     async fn rejects_email_differing_only_in_case(pool: PgPool) -> sqlx::Result<()> {
-        let db = Database::from_pool(pool);
+        setup(&pool).await?;
+        let db = database_as(&pool, Role::Edd).await?;
         db.insert_user(new_user("camper@freecodecamp.org")).await?;
 
         let duplicate = db.insert_user(new_user("CAMPER@freecodecamp.org")).await;
@@ -104,9 +107,10 @@ mod tests {
         Ok(())
     }
 
-    #[sqlx::test]
+    #[sqlx::test(migrations = false)]
     async fn updates_google_profile(pool: PgPool) -> sqlx::Result<()> {
-        let db = Database::from_pool(pool);
+        setup(&pool).await?;
+        let db = database_as(&pool, Role::Edd).await?;
         let user = db.insert_user(new_user("camper@freecodecamp.org")).await?;
 
         db.update_user_google_profile(user.id, "sub-1", Some("https://example.com/p.png"))

@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "DELETE FROM sessions WHERE user_id = $1",
+  "query": "DELETE FROM edd.sessions WHERE user_id = $1",
   "describe": {
     "columns": [],
     "parameters": {
@@ -10,5 +10,5 @@
     },
     "nullable": []
   },
-  "hash": "e9ee477fc969775d4a868a773162a3d14a8bdb38cbdad2069ecea6b100bee629"
+  "hash": "5c36e283e44faf3df190d5b204bf9dd67b9391f263673f05f621bd5241f5b517"
 }

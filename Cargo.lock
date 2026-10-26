@@ -242,7 +242,7 @@ name = "auth-api"
 version = "0.1.0"
 dependencies = [
  "axum",
- "mdb",
+ "edb",
  "runtime",
  "tokio",
  "tracing",
@@ -836,7 +836,6 @@ dependencies = [
  "axum-extra",
  "edb",
  "http 1.5.0",
- "mdb",
  "oauth2",
  "reqwest",
  "runtime",
@@ -1571,16 +1570,6 @@ checksum = "69b6441f590336821bb897fb28fc622898ccceb1d6cea3fde5ea86b090c4de98"
 dependencies = [
  "cfg-if",
  "digest 0.11.3",
-]
-
-[[package]]
-name = "mdb"
-version = "0.1.0"
-dependencies = [
- "sqlx",
- "thiserror 2.0.21",
- "tokio",
- "uuid",
 ]
 
 [[package]]

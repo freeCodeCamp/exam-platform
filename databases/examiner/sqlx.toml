@@ -1,2 +1,8 @@
+# As `edb_migrator`, which owns every object: `sqlx::migrate!()`, the query macros, and
+# `cargo sqlx migrate` / `cargo sqlx prepare` all use this.
 [common]
-database-url-var = "EDB_DATABASE_URL"
+database-url-var = "EDB_MIGRATOR_URL"
+
+[migrate]
+# Out of the app schemas: neither app role can read it.
+table-name = "edb._sqlx_migrations"

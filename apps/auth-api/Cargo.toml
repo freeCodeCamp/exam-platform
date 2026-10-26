@@ -7,7 +7,7 @@ publish.workspace = true
 
 [dependencies]
 axum.workspace = true
-mdb.workspace = true
+edb.workspace = true
 tokio.workspace = true
 tracing.workspace = true
 runtime.workspace = true

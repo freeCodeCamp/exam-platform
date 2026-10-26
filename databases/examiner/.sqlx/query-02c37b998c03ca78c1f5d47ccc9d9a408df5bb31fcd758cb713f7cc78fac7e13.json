@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "INSERT INTO users (name, email, google_id, picture) VALUES ($1, $2, $3, $4)\n            RETURNING id, name, email, google_id, picture",
+  "query": "SELECT id, name, email, google_id, picture FROM edd.users WHERE lower(email) = lower($1)",
   "describe": {
     "columns": [
       {
@@ -9,7 +9,7 @@
         "type_info": "Uuid",
         "origin": {
           "Table": {
-            "table": "users",
+            "table": "edd.users",
             "name": "id"
           }
         }
@@ -20,7 +20,7 @@
         "type_info": "Text",
         "origin": {
           "Table": {
-            "table": "users",
+            "table": "edd.users",
             "name": "name"
           }
         }
@@ -31,7 +31,7 @@
         "type_info": "Text",
         "origin": {
           "Table": {
-            "table": "users",
+            "table": "edd.users",
             "name": "email"
           }
         }
@@ -42,7 +42,7 @@
         "type_info": "Text",
         "origin": {
           "Table": {
-            "table": "users",
+            "table": "edd.users",
             "name": "google_id"
           }
         }
@@ -53,7 +53,7 @@
         "type_info": "Text",
         "origin": {
           "Table": {
-            "table": "users",
+            "table": "edd.users",
             "name": "picture"
           }
         }
@@ -61,9 +61,6 @@
     ],
     "parameters": {
       "Left": [
-        "Text",
-        "Text",
-        "Text",
         "Text"
       ]
     },
@@ -75,5 +72,5 @@
       true
     ]
   },
-  "hash": "c51d9c45c0c5bd3adced474c680d0b060f12a93b4231d6c51bc31d9595afb0e2"
+  "hash": "02c37b998c03ca78c1f5d47ccc9d9a408df5bb31fcd758cb713f7cc78fac7e13"
 }

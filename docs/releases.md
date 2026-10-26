@@ -8,22 +8,24 @@ Consider release service to perform smart releases - `rApp`
 
 ## Apps
 
-| App                  | Ships as                                                     | Version files release-please bumps                            |
-| -------------------- | ------------------------------------------------------------ | ------------------------------------------------------------- |
-| `auth-api`           | Image → Komodo stack `exam-platform-auth-api`                | `Cargo.toml`, root `Cargo.lock`                               |
+| App                  | Ships as                                                     | Version files release-please bumps                     |
+| -------------------- | ------------------------------------------------------------ | ------------------------------------------------------ |
+| `auth-api`           | Image → Komodo stack `exam-platform-auth-api`                | `Cargo.toml`, root `Cargo.lock`                        |
 | `examiner-dashboard` | Image (client + server) → `exam-platform-examiner-dashboard` | `Cargo.toml`, `client/package.json`, root `Cargo.lock` |
-| `web-app`            | Image (Caddy serving `dist/`) → `exam-platform-web-app`      | `package.json`                                                |
-| `desktop-app`        | Tauri bundles: the release job is a stub                     | `package.json`, `backend/Cargo.toml`, `Cargo.lock`            |
+| `web-app`            | Image (Caddy serving `dist/`) → `exam-platform-web-app`      | `package.json`                                         |
+| `desktop-app`        | Tauri bundles: the release job is a stub                     | `package.json`, `backend/Cargo.toml`, `Cargo.lock`     |
 
 ## Workflow
 
 1. Merges to `main` cause `release.yml` release-please PRs for affected applications.
 2. Merged release-please PRs call `release-container.yml` to build the apps, pushes them to the registry, and calls `deploy.yml`.
-3. `deploy.yml` awaits staging GH environment approval, then tells Komodo to run deploy action.
+3. `deploy.yml` awaits staging GH environment approval, then tells Komodo to run deploy action. For aAPI and eDd, the Action first runs the image's `edb-migrate`, and deploys only if it succeeds.
 
 ## Rollback
 
 Stacks read `compose.yaml` from `main`, so a rollback runs the old image with the current compose file: see [Rollback across compose changes](#rollback-across-compose-changes).
+
+Rollback reverts the app image only, never eDb's schema: the old image runs against the newer schema. Migrations keep it backward compatible: drop or rename only once no running or `previous` image uses the object.
 
 ### Through GitHub
 
@@ -31,7 +33,7 @@ Go to `Actions → Deploy → Run workflow`, with the app and `previous`, or wit
 
 ### Without GitHub
 
-Set `EXAM_PLATFORM_<APP>_IMAGE` in Komodo, then deploy the stack. Once it is healthy, set `_IMAGE_HEALTHY` to the same digest: the next failed deploy rolls back to it. Komodo runs Actions from the UI without arguments, so the Action cannot do this.
+aAPI and eDd: set `EXAM_PLATFORM_<APP>_MIGRATE_IMAGE` to the digest, run the stack's `migrate` service, and continue only if it exits 0. Then set `EXAM_PLATFORM_<APP>_IMAGE` in Komodo, and deploy the stack. Once it is healthy, set `_IMAGE_HEALTHY` to the same digest: the next failed deploy rolls back to it. Komodo runs Actions from the UI without arguments, so the Action cannot do this.
 
 ### Rollback Across Compose Changes
 

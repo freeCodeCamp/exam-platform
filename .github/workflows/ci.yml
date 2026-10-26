@@ -25,6 +25,7 @@ jobs:
       rust: ${{ steps.filter.outputs.rust }}
       desktop: ${{ steps.filter.outputs.desktop }}
       bun: ${{ steps.filter.outputs.bun }}
+      deploy: ${{ steps.filter.outputs.deploy }}
       images: ${{ steps.images.outputs.images }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -41,7 +42,6 @@ jobs:
               - Cargo.lock
               - libs/**
               - databases/examiner/**
-              - databases/moderation/**
             bun-lock: &bun-lock
               - package.json
               - bun.lock
@@ -67,6 +67,9 @@ jobs:
               - apps/examiner-dashboard/*.json
               - apps/examiner-dashboard/*.ts
               - apps/desktop-app/**
+            deploy:
+              - *ci
+              - deploy/**
             # Images: the app, plus what its Dockerfile copies from outside it.
             auth-api: [*ci, *cargo, .dockerignore, apps/auth-api/**]
             examiner-dashboard: [*ci, *cargo, *bun-lock, .dockerignore, apps/examiner-dashboard/**]
@@ -88,20 +91,20 @@ jobs:
     permissions:
       contents: read
     services:
-      # For edb and mdb #[sqlx::test]s, which create a database per test.
+      # For edb #[sqlx::test]s, which create a database per test and bootstrap its roles: superuser.
       postgres:
         image: postgres:18.6-trixie
         env:
-          POSTGRES_USER: edd
-          POSTGRES_PASSWORD: edd
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
           POSTGRES_DB: examiner
         ports: ["5432:5432"]
         options: >-
-          --health-cmd "pg_isready -U edd" --health-interval 5s --health-timeout 5s
+          --health-cmd "pg_isready -U postgres" --health-interval 5s --health-timeout 5s
           --health-retries 10
     env:
-      # #[sqlx::test] reads DATABASE_URL, not sqlx.toml's EDB_DATABASE_URL.
-      DATABASE_URL: postgres://edd:edd@127.0.0.1:5432/examiner
+      # #[sqlx::test] reads DATABASE_URL, not sqlx.toml's EDB_MIGRATOR_URL.
+      DATABASE_URL: postgres://postgres:postgres@127.0.0.1:5432/examiner
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -166,6 +169,28 @@ jobs:
       - run: bun run check
       - run: bun run build
 
+  # The deploy Action's script, against a fake Komodo: migration gate, rollback.
+  deploy:
+    name: Deploy
+    needs: changes
+    if: needs.changes.outputs.deploy == 'true'
+    runs-on: ubuntu-slim
+    permissions:
+      contents: read
+    defaults:
+      run:
+        working-directory: deploy
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          sparse-checkout: deploy
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+      - run: bun install --frozen-lockfile
+      - run: bun test
+
   docker:
     name: Docker (${{ matrix.app }})
     needs: changes
@@ -195,7 +220,7 @@ jobs:
   pass:
     name: CI passed
     if: always()
-    needs: [changes, rust, desktop, bun, docker]
+    needs: [changes, rust, desktop, bun, deploy, docker]
     runs-on: ubuntu-slim
     permissions: {}
     steps:

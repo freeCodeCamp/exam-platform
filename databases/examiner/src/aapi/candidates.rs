@@ -23,7 +23,7 @@ impl Database {
     ) -> Result<Option<Candidate>, sqlx::Error> {
         sqlx::query_as!(
             Candidate,
-            "SELECT id, name, email FROM candidates WHERE lower(email) = lower($1)",
+            "SELECT id, name, email FROM aapi.candidates WHERE lower(email) = lower($1)",
             email
         )
         .fetch_optional(&self.pool)
@@ -37,7 +37,7 @@ impl Database {
     ) -> Result<Candidate, sqlx::Error> {
         sqlx::query_as!(
             Candidate,
-            "INSERT INTO candidates (name, email) VALUES ($1, $2) RETURNING id, name, email",
+            "INSERT INTO aapi.candidates (name, email) VALUES ($1, $2) RETURNING id, name, email",
             candidate.name,
             candidate.email
         )
@@ -51,6 +51,7 @@ mod tests {
     use sqlx::PgPool;
 
     use super::*;
+    use crate::testing::*;
 
     fn new_candidate(email: &str) -> NewCandidate {
         NewCandidate {
@@ -59,9 +60,10 @@ mod tests {
         }
     }
 
-    #[sqlx::test]
+    #[sqlx::test(migrations = false)]
     async fn finds_candidate_by_email_case_insensitively(pool: PgPool) -> sqlx::Result<()> {
-        let db = Database::from_pool(pool);
+        setup(&pool).await?;
+        let db = database_as(&pool, Role::Aapi).await?;
         let candidate = db
             .insert_candidate(new_candidate("Camper@freecodecamp.org"))
             .await?;
@@ -74,9 +76,10 @@ mod tests {
         Ok(())
     }
 
-    #[sqlx::test]
+    #[sqlx::test(migrations = false)]
     async fn rejects_email_differing_only_in_case(pool: PgPool) -> sqlx::Result<()> {
-        let db = Database::from_pool(pool);
+        setup(&pool).await?;
+        let db = database_as(&pool, Role::Aapi).await?;
         db.insert_candidate(new_candidate("camper@freecodecamp.org"))
             .await?;
 
@@ -88,28 +91,22 @@ mod tests {
         Ok(())
     }
 
-    #[sqlx::test]
+    #[sqlx::test(migrations = false)]
     async fn edd_reads_but_cannot_write_candidates(pool: PgPool) -> sqlx::Result<()> {
-        let db = Database::from_pool(pool.clone());
-        db.insert_candidate(new_candidate("camper@freecodecamp.org"))
+        setup(&pool).await?;
+        let aapi = database_as(&pool, Role::Aapi).await?;
+        let candidate = aapi
+            .insert_candidate(new_candidate("camper@freecodecamp.org"))
             .await?;
-        let mut tx = pool.begin().await?;
-        sqlx::query("SET LOCAL ROLE mdb_edd")
-            .execute(&mut *tx)
-            .await?;
+        let edd = database_as(&pool, Role::Edd).await?;
 
-        let count: i64 = sqlx::query_scalar("SELECT count(*) FROM candidates")
-            .fetch_one(&mut *tx)
-            .await?;
-        let insert = sqlx::query("INSERT INTO candidates (name, email) VALUES ('a', 'a@b.c')")
-            .execute(&mut *tx)
+        let found = edd.find_candidate_by_email(&candidate.email).await?;
+        let insert = edd
+            .insert_candidate(new_candidate("other@freecodecamp.org"))
             .await;
 
-        assert_eq!(count, 1);
-        let Err(sqlx::Error::Database(err)) = insert else {
-            panic!("insert as mdb_edd succeeded");
-        };
-        assert_eq!(err.code().as_deref(), Some("42501"));
+        assert_eq!(found.map(|c| c.id), Some(candidate.id));
+        assert_denied(insert);
         Ok(())
     }
 }

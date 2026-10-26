@@ -30,21 +30,15 @@ pub async fn app(config: &AppConfig) -> Router {
         .build()
         .expect("failed to build HTTP client");
 
-    // Runs pending migrations. Panics so the deploy fails its healthcheck and rolls back.
+    // As role `edd`: the deploy ran edb-migrate first. Panics so the deploy fails its healthcheck
+    // and rolls back.
     let database = Database::connect(&config.edb_database_url)
         .await
-        .expect("failed to connect to eDb and migrate");
-
-    // aAPI owns mDb. Panics, so the deploy rolls back, until aAPI applies the migrations this
-    // build embeds.
-    let moderation_database = mdb::Database::connect_checked(&config.mdb_database_url)
-        .await
-        .expect("failed to connect to mDb, or its migrations are behind this build");
+        .expect("failed to connect to eDb");
 
     let server_state = ServerState {
         config: config.clone(),
         database,
-        moderation_database,
         http_client,
         google_client,
         pending_logins: PendingLogins::default(),

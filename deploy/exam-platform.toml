@@ -1,4 +1,4 @@
-# Komodo Resource Sync for the exam platform's single environment. Setup: deploy/README.md.
+# Komodo Resource Sync for the exam platform's single environment. Setup: docs/deployment/setup.md.
 #
 # Sync settings: this file on `main`, include_user_groups = true, include_variables = false.
 # Variables stay out of the sync: the deploy Action moves EXAM_PLATFORM_*_IMAGE on every deploy,
@@ -6,7 +6,9 @@
 #
 # Stacks run each app's compose.yaml from `main`, the file developers run locally, with IMAGE set
 # to a release digest. They only deploy when GitHub Actions runs the exam-platform-deploy Action:
-# `deploy = false`, no webhooks, no polling.
+# `deploy = false`, no webhooks, no polling. Backend stacks also hold a `migrate` service, which the
+# Action runs (RunStackService: `docker compose run --rm`) from MIGRATE_IMAGE before each deploy.
+# The stack's .env holds both eDb credentials; each container gets only its own.
 
 [[stack]]
 name = "exam-platform-auth-api"
@@ -29,7 +31,9 @@ environment = """
 IMAGE=[[EXAM_PLATFORM_AUTH_API_IMAGE]]
 ENVIRONMENT=staging
 SENTRY_DSN=[[EXAM_PLATFORM_AUTH_API_SENTRY_DSN]]
-MDB_DATABASE_URL=[[EXAM_PLATFORM_AUTH_API_MDB_DATABASE_URL]]
+EDB_DATABASE_URL=[[EXAM_PLATFORM_AUTH_API_EDB_DATABASE_URL]]
+MIGRATE_IMAGE=[[EXAM_PLATFORM_AUTH_API_MIGRATE_IMAGE]]
+EDB_MIGRATOR_URL=[[EXAM_PLATFORM_EXAMINER_DB_MIGRATOR_URL]]
 """
 
 [[stack]]
@@ -55,14 +59,15 @@ GOOGLE_OAUTH_SECRET=[[EXAM_PLATFORM_EXAMINER_DASHBOARD_GOOGLE_OAUTH_SECRET]]
 GOOGLE_REDIRECT_URL=[[EXAM_PLATFORM_EXAMINER_DASHBOARD_GOOGLE_REDIRECT_URL]]
 COOKIE_KEY=[[EXAM_PLATFORM_EXAMINER_DASHBOARD_COOKIE_KEY]]
 EDB_DATABASE_URL=[[EXAM_PLATFORM_EXAMINER_DASHBOARD_EDB_DATABASE_URL]]
-MDB_DATABASE_URL=[[EXAM_PLATFORM_EXAMINER_DASHBOARD_MDB_DATABASE_URL]]
+MIGRATE_IMAGE=[[EXAM_PLATFORM_EXAMINER_DASHBOARD_MIGRATE_IMAGE]]
+EDB_MIGRATOR_URL=[[EXAM_PLATFORM_EXAMINER_DB_MIGRATOR_URL]]
 """
 
 # eDb until production moves to hosted Postgres. Not part of the deploy Action: deploy by hand in
-# Komodo, before eDd. The volume outlives redeploys.
+# Komodo, before aAPI and eDd. The volume outlives redeploys.
 [[stack]]
 name = "exam-platform-examiner-db"
-description = "eDb: Postgres for eDd"
+description = "eDb: Postgres for eDd and aAPI"
 tags = ["exam-platform"]
 [stack.config]
 server = "exam-platform"
@@ -74,25 +79,9 @@ pre_deploy.command = "docker network inspect platform >/dev/null 2>&1 || docker 
 extra_args = ["--wait", "--wait-timeout", "120"]
 environment = """
 EDB_PASSWORD=[[EXAM_PLATFORM_EXAMINER_DB_PASSWORD]]
-"""
-
-# mDb until production moves to hosted Postgres. Not part of the deploy Action: deploy by hand in
-# Komodo, before aAPI and eDd. The volume outlives redeploys.
-[[stack]]
-name = "exam-platform-moderation-db"
-description = "mDb: Postgres for aAPI and eDd"
-tags = ["exam-platform"]
-[stack.config]
-server = "exam-platform"
-repo = "freeCodeCamp/exam-platform"
-branch = "main"
-run_directory = "databases/moderation"
-file_paths = ["compose.yaml"]
-pre_deploy.command = "docker network inspect platform >/dev/null 2>&1 || docker network create platform"
-extra_args = ["--wait", "--wait-timeout", "120"]
-environment = """
-MDB_PASSWORD=[[EXAM_PLATFORM_MODERATION_DB_PASSWORD]]
-MDB_EDD_PASSWORD=[[EXAM_PLATFORM_MODERATION_DB_EDD_PASSWORD]]
+EDB_MIGRATOR_PASSWORD=[[EXAM_PLATFORM_EXAMINER_DB_MIGRATOR_PASSWORD]]
+EDB_EDD_PASSWORD=[[EXAM_PLATFORM_EXAMINER_DB_EDD_PASSWORD]]
+EDB_AAPI_PASSWORD=[[EXAM_PLATFORM_EXAMINER_DB_AAPI_PASSWORD]]
 """
 
 [[stack]]
@@ -132,20 +121,30 @@ file_contents = '''
 //   IMAGE           what the stack runs. Set before each deploy, so it may be unhealthy.
 //   IMAGE_HEALTHY   the last image a deploy confirmed healthy: the rollback target.
 //   IMAGE_PREVIOUS  the healthy image before it, for `previous`.
+//   MIGRATE_IMAGE   backends only: the image whose edb-migrate the stack's `migrate` service runs.
+// Backends migrate eDb from the image first, and deploy only once that succeeds: a failed or
+// unconfirmed migration leaves the running app untouched. Schema changes are never rolled back.
 // Only admins may write Variables. The Action user is one, so CI needs Execute on this Action only.
 // Komodo interpolates ARGS before the script runs: never echo them unvalidated.
 const APPS = ["auth-api", "examiner-dashboard", "web-app"];
+// Embed edb (databases/examiner), so ship edb-migrate.
+const MIGRATES = ["auth-api", "examiner-dashboard"];
 const app = String(ARGS.APP);
 if (!APPS.includes(app)) throw new Error(`APP must be one of ${APPS.join(", ")}`);
 
 const stack = `exam-platform-${app}`;
-const current = `EXAM_PLATFORM_${app.toUpperCase().replaceAll("-", "_")}_IMAGE`;
+const prefix = `EXAM_PLATFORM_${app.toUpperCase().replaceAll("-", "_")}`;
+const current = `${prefix}_IMAGE`;
 const healthy = `${current}_HEALTHY`;
 const previous = `${current}_PREVIOUS`;
+const migrateImage = `${prefix}_MIGRATE_IMAGE`;
 // Komodo pulls the image, then compose waits up to 120s (the stacks' --wait-timeout) for healthy
-// containers. deploy.ts waits for a deploy and its rollback: keep its deadline above twice this.
+// containers.
 const DEPLOY_SECONDS = 420;
-// How long a DeployStack request that errored may take to show up as an Update.
+// The pull, then edb-migrate, which gives up after 300s (TIMEOUT in databases/examiner/src/bin/).
+// deploy.ts waits for a migration, a deploy and its rollback: keep its deadline above the sum.
+const MIGRATE_SECONDS = 420;
+// How long a request that errored may take to show up as an Update.
 const START_SECONDS = 30;
 
 const sleep = (seconds: number) => new Promise((resolve) => setTimeout(resolve, seconds * 1000));
@@ -181,32 +180,39 @@ async function set(name: string, value: string) {
   });
 }
 
+// DeployStack and RunStackService both mark the stack deploying.
 const deploying = async () => (await komodo.read("GetStackActionState", { stack })).deploying;
 
-// The first DeployStack Update for the stack since `since`, if Core has created one.
-async function findDeploy(stackId: string, since: number): Promise<string | undefined> {
-  const query = { "target.type": "Stack", "target.id": stackId, operation: "DeployStack", start_ts: { $gte: since } };
+// The first `operation` Update for the stack since `since`, if Core has created one.
+async function findUpdate(stackId: string, operation: string, since: number): Promise<string | undefined> {
+  const query = { "target.type": "Stack", "target.id": stackId, operation, start_ts: { $gte: since } };
   return (await komodo.read("ListUpdates", { query })).updates.at(-1)?.id;
 }
 
-// Points the stack at `image` and deploys it. Settles on Komodo's record of the deploy, never on a
-// request's error: a request that failed may still have started it, and a poll that failed says
-// nothing about it. "not-started": the deploy never began, so the containers did not change.
-// "unknown": the deploy did not finish in time, or its record could not be read.
-async function deploy(stackId: string, image: string): Promise<"healthy" | "failed" | "not-started" | "unknown"> {
-  await set(current, image);
+type Outcome = "success" | "failed" | "not-started" | "unknown";
+
+// Starts `operation` on the stack and waits for it. Settles on Komodo's record of the run, never on
+// a request's error: a request that failed may still have started it, and a poll that failed says
+// nothing about it. "not-started": it never began, so nothing changed. "unknown": it did not finish
+// in time, or its record could not be read.
+async function run(
+  stackId: string,
+  operation: "DeployStack" | "RunStackService",
+  start: () => Promise<{ _id?: { $oid: string } }>,
+  seconds: number,
+): Promise<Outcome> {
   const since = Date.now();
   let id: string | undefined;
   try {
-    id = (await komodo.execute("DeployStack", { stack }))._id?.$oid;
+    id = (await start())._id?.$oid;
   } catch (err) {
-    console.error(`DeployStack request failed, looking for the deploy: ${describe(err)}`);
+    console.error(`${operation} request failed, looking for the run: ${describe(err)}`);
   }
-  const deadline = since + DEPLOY_SECONDS * 1000;
+  const deadline = since + seconds * 1000;
   while (Date.now() < deadline) {
     await sleep(3);
     try {
-      id ??= await findDeploy(stackId, since);
+      id ??= await findUpdate(stackId, operation, since);
       if (!id) {
         // Core creates the Update before it answers: none by now means the request never arrived.
         if (Date.now() - since > START_SECONDS * 1000 && !(await deploying())) return "not-started";
@@ -217,12 +223,27 @@ async function deploy(stackId: string, image: string): Promise<"healthy" | "fail
       for (const log of update.logs) {
         if (!log.success) console.error(`${log.stage}:\n${log.stderr || log.stdout}`);
       }
-      return update.success ? "healthy" : "failed";
+      return update.success ? "success" : "failed";
     } catch (err) {
-      console.error(`Polling the deploy of ${stack}: ${describe(err)}`);
+      console.error(`Polling ${operation} on ${stack}: ${describe(err)}`);
     }
   }
   return "unknown";
+}
+
+// Runs edb-migrate from `image` in a one-shot container (the stack's `migrate` service), on the
+// Komodo host and network `platform`. Its exit code is the run's success. Touches no app container
+// or app Variable.
+async function migrate(stackId: string, image: string): Promise<Outcome> {
+  await set(migrateImage, image);
+  const request = { stack, service: "migrate", no_tty: true, no_deps: true, pull: true };
+  return run(stackId, "RunStackService", () => komodo.execute("RunStackService", request), MIGRATE_SECONDS);
+}
+
+// Points the stack at `image` and deploys it.
+async function deploy(stackId: string, image: string): Promise<Outcome> {
+  await set(current, image);
+  return run(stackId, "DeployStack", () => komodo.execute("DeployStack", { stack }), DEPLOY_SECONDS);
 }
 
 const vars = await variables();
@@ -238,9 +259,25 @@ if (!stackId) throw new Error(`${stack} has no id`);
 // deploy.yml already runs one deploy per app at a time: this catches a deploy started from the Komodo UI.
 if (await retry("GetStackActionState", deploying)) throw new Error(`${stack} is already deploying`);
 
+// Every deploy of a backend, `previous` included: an older edb-migrate skips migrations it does not
+// know, and still checks the checksums of those it does.
+if (MIGRATES.includes(app)) {
+  const migrated = await migrate(stackId, image);
+  if (migrated !== "success") {
+    throw new Error(
+      {
+        failed: `Migrations from ${image} failed: not deployed, ${stack} unchanged. Fix the migration, then deploy again.`,
+        "not-started": `Migrations from ${image} never started: not deployed, ${stack} unchanged.`,
+        unknown: `No result for the migrations from ${image}: not deployed. Check ${stack} in Komodo before deploying again.`,
+      }[migrated],
+    );
+  }
+  console.log(`eDb migrated from ${image}`);
+}
+
 const restore = vars.get(healthy) || undefined;
 const outcome = await deploy(stackId, image);
-if (outcome === "healthy") {
+if (outcome === "success") {
   // PREVIOUS first: failing between the writes leaves both on the old healthy image, so `previous`
   // loses nothing.
   const writes = [{ name: healthy, value: image }];
@@ -266,9 +303,10 @@ if (outcome === "healthy") {
 } else if (!restore || restore === image) {
   throw new Error(`Deploy failed: ${stack} has no other healthy image to roll back to`);
 } else {
+  // No migration: `restore` ran healthy against the schema, which has only grown since.
   const restored = await deploy(stackId, restore);
   const rollback = {
-    healthy: `${stack} rolled back to ${restore}`,
+    success: `${stack} rolled back to ${restore}`,
     failed: `rollback to ${restore} failed too: ${stack} needs attention`,
     "not-started": `rollback to ${restore} never started: ${stack} needs attention`,
     unknown: `no result for the rollback to ${restore}: check ${stack} in Komodo`,

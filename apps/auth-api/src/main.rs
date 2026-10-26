@@ -15,16 +15,16 @@ fn main() -> Exit {
     };
 
     // Empty counts as unset, as compose passes `${VAR:-}`.
-    let Some(mdb_database_url) = std::env::var("MDB_DATABASE_URL")
+    let Some(edb_database_url) = std::env::var("EDB_DATABASE_URL")
         .ok()
         .filter(|v| !v.is_empty())
     else {
-        eprintln!("configuration error: MDB_DATABASE_URL not set");
+        eprintln!("configuration error: EDB_DATABASE_URL not set");
         return Exit::Config;
     };
 
     // Before the Tokio runtime starts, so every worker thread inherits the Sentry hub.
     let _sentry = runtime::telemetry::init(runtime::release!(), &config.telemetry);
 
-    runtime::serve(config.listen_addr, app::app(mdb_database_url))
+    runtime::serve(config.listen_addr, app::app(edb_database_url))
 }

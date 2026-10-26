@@ -6,14 +6,19 @@ services:
     ports: ["127.0.0.1:${EDB_PORT:-15432}:5432"]
     environment:
       POSTGRES_DB: examiner
-      # eDd is the sole user and owns the schema: its embedded migrations need DDL.
-      POSTGRES_USER: edd
+      # Bootstrap only (initdb/). edb-migrate connects as `edb_migrator`, eDd and aAPI as `edd` and `aapi`.
+      POSTGRES_USER: postgres
       POSTGRES_PASSWORD: ${EDB_PASSWORD:?set EDB_PASSWORD}
+      EDB_MIGRATOR_PASSWORD: ${EDB_MIGRATOR_PASSWORD:?set EDB_MIGRATOR_PASSWORD}
+      EDB_EDD_PASSWORD: ${EDB_EDD_PASSWORD:?set EDB_EDD_PASSWORD}
+      EDB_AAPI_PASSWORD: ${EDB_AAPI_PASSWORD:?set EDB_AAPI_PASSWORD}
     volumes:
       # Postgres 18+ keeps PGDATA in a major-version subdirectory of this mount.
       - examiner-db:/var/lib/postgresql
+      # Runs on an empty volume only.
+      - ./initdb:/docker-entrypoint-initdb.d:ro
     healthcheck:
-      test: ["CMD", "pg_isready", "-U", "edd", "-d", "examiner"]
+      test: ["CMD", "pg_isready", "-U", "postgres", "-d", "examiner"]
       interval: 5s
       timeout: 5s
       retries: 10

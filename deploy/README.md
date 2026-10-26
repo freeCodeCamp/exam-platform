@@ -14,6 +14,22 @@ Staging is one DigitalOcean Droplet. Komodo deploys the app stacks on it ([`docs
 | Server                                        | `exam-platform`: the Periphery in this compose project. It connects to Core with keys from the shared `keys` volume    |
 | On disk                                       | Repository and `deploy/.env` in `/opt/exam-platform`, stacks in `/etc/komodo/stacks`, backups in `/etc/komodo/backups` |
 
+## Migrations
+
+aAPI and eDd images both carry `edb-migrate`, built from the same commit as the app. The `exam-platform-deploy` Action gates each backend deploy, including `previous`, on it:
+
+1. Set `EXAM_PLATFORM_<APP>_MIGRATE_IMAGE` to the digest being deployed.
+2. `RunStackService` on the app's stack, service `migrate`: Komodo runs `docker compose run --rm migrate` on the Droplet, in network `platform`, pulling the image first. The container gets only `EDB_MIGRATOR_URL`; app containers never do.
+3. Exit 0: deploy the app, check health, record it or roll back the app image. Anything else: stop. The running app is untouched.
+
+| Result                       | Then                                                                                             |
+| ---------------------------- | ------------------------------------------------------------------------------------------------ |
+| Failed                       | Not deployed. Earlier migrations in the run stay applied. Fix with a new release, deploy again.  |
+| Never started                | Not deployed, nothing changed. Deploy again.                                                     |
+| No result in 420s            | Not deployed. Check the stack's last `RunStackService` update in Komodo before deploying again.  |
+
+`edb-migrate` gives up after 300s (60s per lock wait), so a cut-off run rolls back its current migration. Concurrent runs from both backends queue on a Postgres advisory lock. Rollbacks revert the app image only: the Action does not migrate again for its automatic rollback, and never reverts the schema. [`action.test.ts`](action.test.ts) (`bun test`) runs the Action against a fake Komodo.
+
 ## Routing
 
 All names resolve to the Droplet. Caddy ([`caddy/Caddyfile`](caddy/Caddyfile)) holds a certificate for each, redirects HTTP to HTTPS, and picks the upstream by host name:

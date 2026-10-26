@@ -3,7 +3,7 @@
 # builds never resolve Tauri or webkit dependencies.
 [workspace]
 resolver = "3"
-members = ["apps/auth-api", "apps/examiner-dashboard", "databases/examiner", "databases/moderation", "libs/*"]
+members = ["apps/auth-api", "apps/examiner-dashboard", "databases/examiner", "libs/*"]
 exclude = ["apps/desktop-app"]
 
 [workspace.package]
@@ -52,7 +52,6 @@ sqlx = { version = "0.9.0", default-features = false, features = [
 ] }
 uuid = "1.28.0"
 edb = { path = "databases/examiner" }
-mdb = { path = "databases/moderation" }
 runtime = { path = "libs/runtime" }
 
 [workspace.lints.clippy]

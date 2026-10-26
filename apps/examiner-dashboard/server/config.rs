@@ -17,7 +17,6 @@ use crate::routes::auth::google::GoogleClient;
 pub struct ServerState {
     pub config: AppConfig,
     pub database: Database,
-    pub moderation_database: mdb::Database,
     /// Follows no redirects: the OAuth token exchange must not be redirected (SSRF).
     pub http_client: reqwest::Client,
     pub google_client: GoogleClient,
@@ -75,8 +74,6 @@ pub struct AppConfig {
     pub cookie_key: String,
     /// eDb connection string. Hosted Postgres: add `?sslmode=verify-full`.
     pub edb_database_url: String,
-    /// mDb connection string, as `edd`. Hosted Postgres: add `?sslmode=verify-full`.
-    pub mdb_database_url: String,
     pub google_oauth_id: String,
     pub google_oauth_secret: String,
     pub google_redirect_url: String,
@@ -136,14 +133,6 @@ impl AppConfig {
             }
         };
 
-        let mdb_database_url = match var("MDB_DATABASE_URL") {
-            Ok(v) if !v.is_empty() => v,
-            _ => {
-                tracing::error!("MDB_DATABASE_URL not set");
-                panic!("MDB_DATABASE_URL required");
-            }
-        };
-
         let web_dir = match var("WEB_DIR") {
             Ok(v) => {
                 tracing::info!("WEB_DIR explicitly set to {v}");
@@ -155,7 +144,6 @@ impl AppConfig {
         Self {
             cookie_key,
             edb_database_url,
-            mdb_database_url,
             google_oauth_id,
             google_oauth_secret,
             google_redirect_url,
