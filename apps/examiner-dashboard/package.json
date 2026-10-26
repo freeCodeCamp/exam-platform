@@ -11,6 +11,8 @@
   "dependencies": {
     "@astrojs/react": "catalog:astro",
     "@chakra-ui/react": "catalog:astro",
+    "@dnd-kit/dom": "^0.5.1",
+    "@dnd-kit/react": "^0.5.1",
     "@emotion/react": "catalog:astro",
     "@tanstack/react-query": "catalog:",
     "astro": "catalog:astro",
@@ -18,6 +20,7 @@
     "oxfmt": "catalog:",
     "react": "catalog:",
     "react-dom": "catalog:",
+    "react-hook-form": "^7.90.0",
     "react-icons": "catalog:astro"
   },
   "devDependencies": {
