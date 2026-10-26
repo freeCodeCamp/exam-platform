@@ -6,7 +6,7 @@
     "dev": "astro dev --host 127.0.0.1 --port 13005",
     "build": "astro check && astro build",
     "check": "astro check",
-    "fmt": "oxfmt"
+    "format": "bun fmt"
   },
   "dependencies": {
     "@astrojs/react": "catalog:astro",
@@ -17,7 +17,6 @@
     "@tanstack/react-query": "catalog:",
     "astro": "catalog:astro",
     "next-themes": "catalog:astro",
-    "oxfmt": "catalog:",
     "react": "catalog:",
     "react-dom": "catalog:",
     "react-hook-form": "^7.90.0",

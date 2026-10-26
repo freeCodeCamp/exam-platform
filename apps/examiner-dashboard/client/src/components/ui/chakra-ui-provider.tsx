@@ -1,9 +1,4 @@
-import {
-  ChakraProvider,
-  createSystem,
-  defaultConfig,
-  defineConfig,
-} from "@chakra-ui/react";
+import { ChakraProvider, createSystem, defaultConfig, defineConfig } from "@chakra-ui/react";
 import { ColorModeProvider, type ColorModeProviderProps } from "./color-mode";
 
 // Square corners on all components. Components use the l1-l3 radii.

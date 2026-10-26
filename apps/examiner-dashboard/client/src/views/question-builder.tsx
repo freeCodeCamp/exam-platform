@@ -16,12 +16,7 @@ import { DragDropProvider } from "@dnd-kit/react";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import type { IconType } from "react-icons";
-import {
-  LuGripVertical,
-  LuListChecks,
-  LuMousePointerClick,
-  LuPilcrow,
-} from "react-icons/lu";
+import { LuGripVertical, LuListChecks, LuMousePointerClick, LuPilcrow } from "react-icons/lu";
 
 import type { CollectionEntry } from "astro:content";
 
@@ -171,8 +166,7 @@ function ParagraphEditor({
   element: Paragraph;
   updateElement: UpdateElement;
 }) {
-  const updateText = (text: Text) =>
-    updateElement({ ...text, kind: "paragraph" });
+  const updateText = (text: Text) => updateElement({ ...text, kind: "paragraph" });
 
   return <TextEditor label="Content" text={element} updateText={updateText} />;
 }
@@ -227,12 +221,7 @@ function BlockItem({ kind }: { kind: Kind }) {
         "&[data-dnd-placeholder]": { opacity: 0.4, borderStyle: "dashed" },
       }}
     >
-      <Center
-        boxSize="10"
-        flexShrink={0}
-        bg="colorPalette.solid"
-        color="colorPalette.contrast"
-      >
+      <Center boxSize="10" flexShrink={0} bg="colorPalette.solid" color="colorPalette.contrast">
         <Icon size="20" />
       </Center>
       <Box flex="1" minW="0">
@@ -314,10 +303,7 @@ function SideBar({
             </Card.Header>
             <Card.Body>
               {el.kind === "multiple-choice" ? (
-                <MultipleChoiceEditor
-                  element={el}
-                  updateElement={updateElement}
-                />
+                <MultipleChoiceEditor element={el} updateElement={updateElement} />
               ) : (
                 <ParagraphEditor element={el} updateElement={updateElement} />
               )}
@@ -405,11 +391,7 @@ export function QuestionBuilder() {
 
   return (
     <AppRoot>
-      <PageShell
-        title="Question Builder"
-        description="Author exams."
-        path="/question-builder"
-      >
+      <PageShell title="Question Builder" description="Author exams." path="/question-builder">
         <DragDropProvider
           onDragEnd={(event) => {
             // e.g. if the user presses Escape
