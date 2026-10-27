@@ -1,11 +1,12 @@
 {
   "name": "web-app",
-  "private": true,
   "version": "0.2.0",
+  "private": true,
   "type": "module",
   "scripts": {
     "dev": "astro dev --host 127.0.0.1 --port 13003",
     "build": "astro check && astro build",
+    "fmt": "oxfmt",
     "preview": "astro preview --host 127.0.0.1 --port 13003",
     "check": "astro check"
   },
@@ -22,6 +23,7 @@
     "@types/bun": "catalog:",
     "@types/react": "catalog:",
     "@types/react-dom": "catalog:",
+    "oxfmt": "catalog:",
     "typescript": "catalog:astro"
   }
 }

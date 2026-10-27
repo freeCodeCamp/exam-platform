@@ -1,0 +1,1 @@
+"*": bun run fmt -- --no-error-on-unmatched-pattern

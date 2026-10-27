@@ -17,7 +17,6 @@
     "@tanstack/react-query": "catalog:",
     "astro": "catalog:astro",
     "next-themes": "catalog:astro",
-    "oxfmt": "catalog:",
     "react": "catalog:",
     "react-dom": "catalog:",
     "react-hook-form": "^7.90.0",
@@ -29,6 +28,7 @@
     "@types/bun": "catalog:",
     "@types/react": "catalog:",
     "@types/react-dom": "catalog:",
+    "oxfmt": "catalog:",
     "typescript": "catalog:astro"
   }
 }
