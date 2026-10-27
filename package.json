@@ -40,6 +40,7 @@
     "dev:desktop": "bun --filter desktop-app tauri:dev",
     "build": "bun --filter '*' build",
     "check": "bun --filter '*' check",
+    "lint": "bun --filter '*' lint",
     "prepare": "husky"
   },
   "devDependencies": {
