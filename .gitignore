@@ -22,3 +22,4 @@ apps/desktop-app/backend/gen/
 .idea/
 .DS_Store
 *.log
+.helix
