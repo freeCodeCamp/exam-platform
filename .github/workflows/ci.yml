@@ -182,6 +182,7 @@ jobs:
           bun-version: ${{ env.BUN_VERSION }}
       - run: bun install --frozen-lockfile
       - run: bun run check
+      - run: bun run lint
       - run: bun run build
 
   docker:
