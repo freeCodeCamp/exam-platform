@@ -9,15 +9,15 @@
       "apps/desktop-app"
     ],
     "catalog": {
-      "@eslint/js": "10.0.1",
       "@tanstack/react-query": "5.104.1",
       "@tanstack/react-query-devtools": "5.104.1",
       "@types/bun": "1.4.2",
       "@types/react": "19.3.0",
       "@types/react-dom": "19.3.0",
-      "eslint": "10.13.0",
-      "typescript-eslint": "8.72.1",
       "oxfmt": "0.73.0",
+      "oxlint": "1.90.0",
+      "oxlint-config-presets": "0.1.21",
+      "oxlint-tsgolint": "7.0.2005",
       "react": "19.3.0",
       "react-dom": "19.3.0"
     },
@@ -27,7 +27,6 @@
         "@astrojs/react": "7.0.0",
         "@chakra-ui/react": "3.37.0",
         "@emotion/react": "11.14.0",
-        "eslint-plugin-react": "7.37.5",
         "astro": "7.3.5",
         "next-themes": "0.4.6",
         "react-icons": "5.7.0",
