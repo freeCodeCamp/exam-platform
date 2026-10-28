@@ -7,7 +7,7 @@
     "build": "astro check && astro build",
     "check": "astro check",
     "fmt": "oxfmt",
-    "lint": "eslint"
+    "lint": "oxlint"
   },
   "dependencies": {
     "@astrojs/react": "catalog:astro",
@@ -25,15 +25,14 @@
   },
   "devDependencies": {
     "@astrojs/check": "catalog:astro",
-    "@eslint/js": "catalog:",
     "@tanstack/react-query-devtools": "catalog:",
     "@types/bun": "catalog:",
     "@types/react": "catalog:",
     "@types/react-dom": "catalog:",
-    "eslint": "catalog:",
-    "eslint-plugin-react": "catalog:astro",
     "oxfmt": "catalog:",
-    "typescript": "catalog:astro",
-    "typescript-eslint": "catalog:"
+    "oxlint": "catalog:",
+    "oxlint-config-presets": "catalog:",
+    "oxlint-tsgolint": "catalog:",
+    "typescript": "catalog:astro"
   }
 }
