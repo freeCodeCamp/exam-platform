@@ -4,8 +4,10 @@
 
 - [Apps](./apps/README.md)
   - [Auth API](./apps/auth-api.md)
+  - [Curriculum Database](./apps/curriculum-database.md)
   - [Desktop App](./apps/desktop-app.md)
   - [Examiner Dashboard](./apps/examiner-dashboard.md)
+  - [Examiner Database](./apps/examiner-database.md)
   - [Web App](./apps/web-app.md)
 - [Architecture](./architecture.md)
 - [Auth](./auth.md)
@@ -14,6 +16,7 @@
   - [Spec](./deployment/spec.md)
   - [Setup](./deployment/setup.md)
   - [Environment Variables](./deployment/environment-variables.md)
+  - [Housekeeping](./deployment/housekeeping.md)
 - [Releases](./releases.md)
 - [Conventions](./conventions/README.md)
   - [Databases](./conventions/databases.md)
