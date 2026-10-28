@@ -2,3 +2,8 @@
   --content-max-width: calc(100% - 90px * 2);
   --page-padding: 0;
 }
+
+h2,
+h3 {
+  margin-block-start: 1.5em;
+}

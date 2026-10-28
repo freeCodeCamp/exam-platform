@@ -1,11 +1,6 @@
 name: Deploy
 
-# Runs Komodo's exam-platform-deploy Action (deploy/exam-platform.toml) through deploy/deploy.ts:
-# for aAPI and eDd, runs the image's edb-migrate on the Komodo host first and stops unless it
-# succeeds; then points the app's stack at one image digest, keeps the digest it replaces, and rolls
-# the app (never the schema) back if containers do not turn healthy. Called after each release
-# (release-container.yml); dispatch by hand to redeploy a release's image or roll back with
-# `previous`, through the same migration gate.
+# Runs Komodo's exam-platform-deploy Action (deploy/exam-platform.toml) through deploy/deploy.ts
 
 on:
   workflow_call:

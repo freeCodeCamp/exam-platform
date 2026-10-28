@@ -61,7 +61,7 @@ Generate cookie key with `openssl rand -hex 64`. Create these Komodo Variables b
 
 ## Examiner Database
 
-Until production moves to hosted Postgres, eDb runs as Komodo stack `exam-platform-examiner-db` (`databases/examiner/compose.yaml`). It holds one schema per app, all owned by role `edb_migrator`; the apps connect as roles `edd` and `aapi`, which cannot change the schema. Generate four passwords with `openssl rand -hex 32`, then create secret Variables:
+Until production moves to hosted Postgres, eDb runs as Komodo stack `exam-platform-examiner-db` (`databases/examiner/compose.yaml`). It holds one schema per app plus `shared`, all owned by role `edb_migrator`; the apps connect as roles `edd` and `aapi`, which cannot change the schema. Generate four passwords with `openssl rand -hex 32`, then create secret Variables:
 
 - `EXAM_PLATFORM_EXAMINER_DB_PASSWORD`: superuser `postgres`. Bootstrap only.
 - `EXAM_PLATFORM_EXAMINER_DB_MIGRATOR_PASSWORD`, `EXAM_PLATFORM_EXAMINER_DB_EDD_PASSWORD`, `EXAM_PLATFORM_EXAMINER_DB_AAPI_PASSWORD`: roles `edb_migrator`, `edd` and `aapi`.

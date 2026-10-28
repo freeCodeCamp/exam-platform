@@ -15,6 +15,7 @@ use sqlx::{
 
 mod aapi;
 mod edd;
+mod shared;
 
 pub use aapi::{Candidate, NewCandidate};
 pub use edd::{NewUser, Session, User};

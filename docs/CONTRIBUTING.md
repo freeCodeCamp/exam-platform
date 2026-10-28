@@ -59,18 +59,16 @@ cargo run -p auth-api
 
 Or use [`direnv`](https://direnv.net/): `echo dotenv > .envrc && direnv allow` in each app directory, then run `cargo` from there. `.envrc` is not in `.gitignore`; do not commit it.
 
-| File                           | Set                                                                                                                                                                |
-| ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `databases/examiner/.env`      | `EDB_PASSWORD`, `EDB_MIGRATOR_PASSWORD`, `EDB_EDD_PASSWORD`, `EDB_AAPI_PASSWORD`, and the same in `EDB_ADMIN_URL`, `EDB_MIGRATOR_URL`                               |
-| `apps/auth-api/.env`           | `EDB_DATABASE_URL` (as `aapi`, with `EDB_AAPI_PASSWORD`)                                                                                                           |
-| `apps/examiner-dashboard/.env` | `EDB_DATABASE_URL` (as `edd`, with `EDB_EDD_PASSWORD`), `COOKIE_KEY` (`openssl rand -hex 64`), `GOOGLE_OAUTH_ID`, `GOOGLE_OAUTH_SECRET` ([Auth](./auth.md))         |
-| Others                         | Defaults work for `ENVIRONMENT=development`. `SENTRY_DSN` stays empty                                                                                              |
+| File                           | Set                                                                                                                                                         |
+| ------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `databases/examiner/.env`      | `EDB_PASSWORD`, `EDB_MIGRATOR_PASSWORD`, `EDB_EDD_PASSWORD`, `EDB_AAPI_PASSWORD`, and the same in `EDB_ADMIN_URL`, `EDB_MIGRATOR_URL`                       |
+| `apps/auth-api/.env`           | `EDB_DATABASE_URL` (as `aapi`, with `EDB_AAPI_PASSWORD`)                                                                                                    |
+| `apps/examiner-dashboard/.env` | `EDB_DATABASE_URL` (as `edd`, with `EDB_EDD_PASSWORD`), `COOKIE_KEY` (`openssl rand -hex 64`), `GOOGLE_OAUTH_ID`, `GOOGLE_OAUTH_SECRET` ([Auth](./auth.md)) |
+| Others                         | Defaults work for `ENVIRONMENT=development`. `SENTRY_DSN` stays empty                                                                                       |
 
 All variables: [Environment Variables](./deployment/environment-variables.md).
 
 ### eDb
-
-Shared by eDd and aAPI, one schema each (`edd`, `aapi`), owned by role `edb_migrator`; apps connect as runtime roles that cannot change the schema. Neither app migrates: run `edb-migrate`, then start either app, in any order. The `query!` macros need a migrated eDb (or `.sqlx/`) to compile.
 
 ```bash
 cd databases/examiner
@@ -151,7 +149,7 @@ eDb schema, migrations and queries live in crate `edb` (`databases/examiner/`). 
 cargo sqlx migrate add -r -s <name> # migrations/NNNN_<name>.{up,down}.sql
 ```
 
-2. Write `up` and `down` SQL, naming the schema (`edd.users`), and grant each app role what it needs on new tables. `down` is for local development only; production never runs it.
+2. Write `up` and `down` SQL, naming the schema (`edd.users`; `shared` if both apps write the table, see [eDb schemas](../databases/examiner/README.md#schemas)), and grant each app role what it needs on new tables. `down` is for local development only; production never runs it.
 3. Apply it to local eDb:
 
 ```bash
@@ -160,7 +158,7 @@ cargo run -p edb --bin edb-migrate # or: cargo sqlx migrate run
 
 To iterate on uncommitted migration: `cargo sqlx migrate revert`, make edits, then run it again.
 
-4. Add or change queries in `src/edd/` or `src/aapi/` (one module per table group, each an `impl Database` block of `query!`/`query_as!`). `cargo check -p edb` validates them against local eDb.
+4. Add or change queries in `src/edd/`, `src/aapi/` or `src/shared/` (one module per table group, each an `impl Database` block of `query!`/`query_as!`). `cargo check -p edb` validates them against local eDb.
 5. Test with `#[sqlx::test(migrations = false)]`, calling `testing::setup` first: it bootstraps roles and schemas, then migrates as `edb_migrator`. Query through `testing::database_as` to run as the app's role. `#[sqlx::test]` reads `DATABASE_URL`, not `sqlx.toml`, and creates a database per test:
 
 ```bash

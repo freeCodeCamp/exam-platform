@@ -1,5 +1,13 @@
 # Databases
 
+## Structure
+
+Databases in this monorepo are Rust crates consumable by the apps - database interfaces and helpers.
+
+There is one schema per application, and a `shared` schema for tables that are written to by multiple apps.
+
+This means there is one module per application, and one `shared` module.
+
 ## `sqlx`
 
 [`sqlx`](https://docs.rs/sqlx/latest/sqlx/) is the database driver. The main API used is the macro API for compile-time checks:

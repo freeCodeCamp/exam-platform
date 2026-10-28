@@ -36,7 +36,7 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/*
 RUN useradd --system --no-create-home --shell /usr/sbin/nologin app
 COPY --from=build /usr/local/bin/examiner-dashboard /usr/local/bin/examiner-dashboard
-# Same commit as the app: the deploy runs it as a separate one-shot container (compose.yaml `migrate`).
+# Deploy runs migration as separate, one-shot container.
 COPY --from=build /usr/local/bin/edb-migrate /usr/local/bin/edb-migrate
 COPY --from=client /src/apps/examiner-dashboard/dist /app/web
 USER app
