@@ -30,8 +30,6 @@ pub async fn app(config: &AppConfig) -> Router {
         .build()
         .expect("failed to build HTTP client");
 
-    // As role `edd`: the deploy ran edb-migrate first. Panics so the deploy fails its healthcheck
-    // and rolls back.
     let database = Database::connect(&config.edb_database_url)
         .await
         .expect("failed to connect to eDb");

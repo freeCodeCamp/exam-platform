@@ -1,4 +1,3 @@
--- aAPI's candidates. eDd reads all candidate data (docs/auth.md), and writes none.
 GRANT USAGE ON SCHEMA aapi TO aapi, edd;
 
 CREATE TABLE aapi.candidates (

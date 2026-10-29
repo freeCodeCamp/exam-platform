@@ -4,8 +4,6 @@ use edb::Database;
 use crate::routes;
 
 pub async fn app(edb_database_url: String) -> Router {
-    // As role `aapi`: the deploy ran edb-migrate first. Panics so the deploy fails its healthcheck
-    // and rolls back.
     let database = Database::connect(&edb_database_url)
         .await
         .expect("failed to connect to eDb");

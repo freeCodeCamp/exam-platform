@@ -14,7 +14,6 @@ fn main() -> Exit {
         }
     };
 
-    // Empty counts as unset, as compose passes `${VAR:-}`.
     let Some(edb_database_url) = std::env::var("EDB_DATABASE_URL")
         .ok()
         .filter(|v| !v.is_empty())

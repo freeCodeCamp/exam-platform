@@ -1,4 +1,3 @@
--- eDd's users and sessions. aAPI gets no access: `sessions` holds eDd's login state.
 GRANT USAGE ON SCHEMA edd TO edd;
 
 CREATE TABLE edd.users (

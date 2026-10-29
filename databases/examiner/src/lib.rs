@@ -20,9 +20,7 @@ mod shared;
 pub use aapi::{Candidate, NewCandidate};
 pub use edd::{NewUser, Session, User};
 
-/// How long a migration statement waits for a lock: the migrator's advisory lock while another
-/// release migrates, or a table lock the apps hold. Failing beats queueing the apps' queries behind
-/// a waiting `ALTER TABLE`.
+/// How long a migration statement waits for a lock
 pub const LOCK_TIMEOUT: Duration = Duration::from_secs(60);
 
 /// Every migration in `migrations/`, tracked in `edb._sqlx_migrations` (`sqlx.toml`).
@@ -54,7 +52,9 @@ pub struct Database {
 }
 
 impl Database {
-    /// Connects as an app's role. Never migrates: `edb-migrate` has already run.
+    /// Connects as an app's role.
+    /// 
+    /// Never migrates. `edb-migrate` should have already run.
     pub async fn connect(url: &str) -> Result<Self, sqlx::Error> {
         let pool = PgPoolOptions::new()
             .max_connections(10)
