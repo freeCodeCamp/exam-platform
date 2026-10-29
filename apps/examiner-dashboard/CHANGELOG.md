@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.3.0](https://github.com/freeCodeCamp/exam-platform/compare/examiner-dashboard-v0.2.0...examiner-dashboard-v0.3.0) (2026-10-29)
+
+
+### Features
+
+* **eDb:** mDb but not ([#26](https://github.com/freeCodeCamp/exam-platform/issues/26)) ([190be63](https://github.com/freeCodeCamp/exam-platform/commit/190be632d0f9655a44df62061c1651a1110399be))
+* **eDd:** question builder ([#23](https://github.com/freeCodeCamp/exam-platform/issues/23)) ([8a34328](https://github.com/freeCodeCamp/exam-platform/commit/8a34328c53b9919a0fa7a49ab0fa053731160d93))
+
 ## [0.2.0](https://github.com/freeCodeCamp/exam-platform/compare/examiner-dashboard-v0.1.0...examiner-dashboard-v0.2.0) (2026-10-21)
 
 
