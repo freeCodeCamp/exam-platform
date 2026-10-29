@@ -25,38 +25,22 @@ jobs:
         with:
           persist-credentials: false
           sparse-checkout: apps
-      - id: auth-api
+      - id: release
         uses: googleapis/release-please-action@45996ed1f6d02564a971a2fa1b5860e934307cf7 # v5.0.0
         continue-on-error: true
-        with:
-          config-file: release-please/auth-api.json
-          manifest-file: release-please/auth-api.manifest.json
-      - id: examiner-dashboard
-        uses: googleapis/release-please-action@45996ed1f6d02564a971a2fa1b5860e934307cf7 # v5.0.0
-        continue-on-error: true
-        with:
-          config-file: release-please/examiner-dashboard.json
-          manifest-file: release-please/examiner-dashboard.manifest.json
-      - id: web-app
-        uses: googleapis/release-please-action@45996ed1f6d02564a971a2fa1b5860e934307cf7 # v5.0.0
-        continue-on-error: true
-        with:
-          config-file: release-please/web-app.json
-          manifest-file: release-please/web-app.manifest.json
-      - id: desktop-app
-        uses: googleapis/release-please-action@45996ed1f6d02564a971a2fa1b5860e934307cf7 # v5.0.0
-        continue-on-error: true
-        with:
-          config-file: release-please/desktop-app.json
-          manifest-file: release-please/desktop-app.manifest.json
       # Apps with a Dockerfile ship as images; desktop-app ships Tauri bundles.
       - id: plan
         env:
-          STEPS: ${{ toJSON(steps) }}
+          OUTPUTS: ${{ toJSON(steps.release.outputs) }}
+          PATHS: ${{ steps.release.outputs.paths_released }}
         run: |
-          releases=$(jq -c '[to_entries[] | .key as $app | .value.outputs
-            | select(.release_created == "true")
-            | {app: $app, version, tag: .tag_name, sha}]' <<<"$STEPS")
+          releases=$(jq -c --argjson paths "${PATHS:-[]}" '[
+            $paths[] as $path
+            | {app: ($path | split("/") | last),
+               version: .[$path + "--version"],
+               tag: .[$path + "--tag_name"],
+               sha: .[$path + "--sha"]}
+          ]' <<<"$OUTPUTS")
           docker=$(find apps -mindepth 2 -maxdepth 2 -name Dockerfile | cut -d/ -f2 | jq -Rnc '[inputs]')
           echo "images=$(jq -c --argjson docker "$docker" 'map(select(.app | IN($docker[])))' <<<"$releases")" >> "$GITHUB_OUTPUT"
           echo "desktop=$(jq -c 'map(select(.app == "desktop-app"))' <<<"$releases")" >> "$GITHUB_OUTPUT"
