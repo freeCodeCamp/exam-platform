@@ -30,10 +30,9 @@ pub async fn app(config: &AppConfig) -> Router {
         .build()
         .expect("failed to build HTTP client");
 
-    // Runs pending migrations. Panics so the deploy fails its healthcheck and rolls back.
     let database = Database::connect(&config.edb_database_url)
         .await
-        .expect("failed to connect to eDb and migrate");
+        .expect("failed to connect to eDb");
 
     let server_state = ServerState {
         config: config.clone(),

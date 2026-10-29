@@ -9,7 +9,7 @@
 git diff --cached --quiet -- databases/examiner && exit 0
 
 cd databases/examiner || exit 0
-# sqlx-cli reads EDB_DATABASE_URL from this directory's .env (see sqlx.toml).
+# sqlx-cli reads EDB_MIGRATOR_URL from this directory's .env (see sqlx.toml).
 if cargo sqlx prepare >/dev/null 2>&1; then
   git add .sqlx >/dev/null 2>&1
 else

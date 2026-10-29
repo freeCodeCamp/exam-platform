@@ -25,6 +25,7 @@ jobs:
       rust: ${{ steps.filter.outputs.rust }}
       desktop: ${{ steps.filter.outputs.desktop }}
       bun: ${{ steps.filter.outputs.bun }}
+      deploy: ${{ steps.filter.outputs.deploy }}
       images: ${{ steps.images.outputs.images }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -66,6 +67,9 @@ jobs:
               - apps/examiner-dashboard/*.json
               - apps/examiner-dashboard/*.ts
               - apps/desktop-app/**
+            deploy:
+              - *ci
+              - deploy/**
             # Images: the app, plus what its Dockerfile copies from outside it.
             auth-api: [*ci, *cargo, .dockerignore, apps/auth-api/**]
             examiner-dashboard: [*ci, *cargo, *bun-lock, .dockerignore, apps/examiner-dashboard/**]
@@ -87,20 +91,18 @@ jobs:
     permissions:
       contents: read
     services:
-      # For edb's #[sqlx::test]s, which create a database per test.
       postgres:
         image: postgres:18.6-trixie
         env:
-          POSTGRES_USER: edd
-          POSTGRES_PASSWORD: edd
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
           POSTGRES_DB: examiner
         ports: ["5432:5432"]
         options: >-
-          --health-cmd "pg_isready -U edd" --health-interval 5s --health-timeout 5s
+          --health-cmd "pg_isready -U postgres" --health-interval 5s --health-timeout 5s
           --health-retries 10
     env:
-      # #[sqlx::test] reads DATABASE_URL, not sqlx.toml's EDB_DATABASE_URL.
-      DATABASE_URL: postgres://edd:edd@127.0.0.1:5432/examiner
+      DATABASE_URL: postgres://postgres:postgres@127.0.0.1:5432/examiner
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -117,6 +119,23 @@ jobs:
       # dApp builds runtime without `server`; clippy only lints workspace members.
       - run: cargo clippy -p runtime --no-default-features --all-targets --locked
       - run: cargo test --workspace --locked
+      # Run to catch stale .sqlx when query! text is unchanged
+      - name: Bootstrap eDb
+        env:
+          POSTGRES_ID: ${{ job.services.postgres.id }}
+        run: |
+          docker exec -i "$POSTGRES_ID" psql -v ON_ERROR_STOP=1 -U postgres -d examiner \
+            < databases/examiner/initdb/10-bootstrap.sql
+          docker exec -i "$POSTGRES_ID" psql -v ON_ERROR_STOP=1 -U postgres -d examiner \
+            -c "ALTER ROLE edb_migrator PASSWORD 'edb_migrator'"
+      - run: cargo run -p edb --bin edb-migrate --locked
+        env:
+          EDB_MIGRATOR_URL: postgres://edb_migrator:edb_migrator@127.0.0.1:5432/examiner
+      - run: cargo install sqlx-cli --version 0.9.0 --locked --no-default-features --features rustls,postgres,sqlx-toml
+      - run: cargo sqlx prepare --check
+        working-directory: databases/examiner
+        env:
+          EDB_MIGRATOR_URL: postgres://edb_migrator:edb_migrator@127.0.0.1:5432/examiner
 
   desktop:
     name: Desktop Rust

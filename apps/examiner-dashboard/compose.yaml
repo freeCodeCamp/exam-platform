@@ -22,6 +22,18 @@ services:
     networks:
       platform:
         aliases: [examiner-dashboard]
+  # One-shot: applies eDb migrations from this image, as `edb_migrator`, then exits. Never started by
+  # `up` (profile). The deploy Action runs it with MIGRATE_IMAGE set to the image it is about to
+  # deploy, and deploys only once it exits 0 (deploy/exam-platform.toml). Only it gets the
+  # migrator's credentials, never examiner-dashboard.
+  migrate:
+    image: ${MIGRATE_IMAGE:-}
+    profiles: [migrate]
+    entrypoint: [edb-migrate]
+    restart: "no"
+    environment:
+      EDB_MIGRATOR_URL: ${EDB_MIGRATOR_URL:-}
+    networks: [platform]
 networks:
   platform:
     name: ${PLATFORM_NETWORK:-platform}

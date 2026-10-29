@@ -16,7 +16,6 @@
         "apps/desktop-app",
         "apps/web-app",
         "databases/curriculum",
-        "databases/moderation",
         "deploy",
         "docs",
         "release-please"

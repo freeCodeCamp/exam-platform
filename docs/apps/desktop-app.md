@@ -1,4 +1,4 @@
-# Desktop App (dApp)
+# Desktop App
 
 Serves exam content to the candidate and observes the station.
 

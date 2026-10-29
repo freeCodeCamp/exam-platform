@@ -1,6 +1,6 @@
-# Auth API (aAPI)
+# Auth API
 
-Candidate identity and the attempt path. The only application candidate devices reach. Rust, Axum, Tokio. Topology in [`../../docs/architecture.md`](../../docs/architecture.md).
+Candidate identity and the attempt path. The only application candidate devices reach.
 
 |        |                                   |
 | ------ | --------------------------------- |

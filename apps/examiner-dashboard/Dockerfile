@@ -26,8 +26,9 @@ COPY databases/examiner databases/examiner
 ENV SQLX_OFFLINE=true
 RUN --mount=type=cache,target=/usr/local/cargo/registry \
     --mount=type=cache,target=/src/target \
-    cargo build --locked --release -p examiner-dashboard \
-    && cp target/release/server /usr/local/bin/examiner-dashboard
+    cargo build --locked --release -p examiner-dashboard -p edb \
+    && cp target/release/server /usr/local/bin/examiner-dashboard \
+    && cp target/release/edb-migrate /usr/local/bin/edb-migrate
 
 FROM debian:trixie-slim
 RUN apt-get update \
@@ -35,6 +36,8 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/*
 RUN useradd --system --no-create-home --shell /usr/sbin/nologin app
 COPY --from=build /usr/local/bin/examiner-dashboard /usr/local/bin/examiner-dashboard
+# Deploy runs migration as separate, one-shot container.
+COPY --from=build /usr/local/bin/edb-migrate /usr/local/bin/edb-migrate
 COPY --from=client /src/apps/examiner-dashboard/dist /app/web
 USER app
 ENV LISTEN_ADDR=0.0.0.0:13002 RUST_LOG=info WEB_DIR=/app/web

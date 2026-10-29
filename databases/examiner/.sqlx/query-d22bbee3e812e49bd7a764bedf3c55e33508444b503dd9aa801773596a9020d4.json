@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "UPDATE users SET google_id = $2, picture = $3, updated_at = now() WHERE id = $1",
+  "query": "UPDATE edd.users SET google_id = $2, picture = $3, updated_at = now() WHERE id = $1",
   "describe": {
     "columns": [],
     "parameters": {
@@ -12,5 +12,5 @@
     },
     "nullable": []
   },
-  "hash": "d504eb663af6d5fa4b843176d7b17553c23ebd55b42b98d4a816e343e8f02e48"
+  "hash": "d22bbee3e812e49bd7a764bedf3c55e33508444b503dd9aa801773596a9020d4"
 }

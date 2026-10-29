@@ -242,6 +242,7 @@ name = "auth-api"
 version = "0.1.0"
 dependencies = [
  "axum",
+ "edb",
  "runtime",
  "tokio",
  "tracing",

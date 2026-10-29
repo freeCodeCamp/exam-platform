@@ -59,24 +59,25 @@ cargo run -p auth-api
 
 Or use [`direnv`](https://direnv.net/): `echo dotenv > .envrc && direnv allow` in each app directory, then run `cargo` from there. `.envrc` is not in `.gitignore`; do not commit it.
 
-| File                           | Set                                                                                                                                     |
-| ------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------- |
-| `databases/examiner/.env`      | `EDB_PASSWORD`, and same password in `EDB_DATABASE_URL`                                                                                 |
-| `apps/examiner-dashboard/.env` | `EDB_DATABASE_URL` (same as above), `COOKIE_KEY` (`openssl rand -hex 64`), `GOOGLE_OAUTH_ID`, `GOOGLE_OAUTH_SECRET` ([Auth](./auth.md)) |
-| Others                         | Defaults work for `ENVIRONMENT=development`. `SENTRY_DSN` stays empty                                                                   |
+| File                           | Set                                                                                                                                                         |
+| ------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `databases/examiner/.env`      | `EDB_PASSWORD`, `EDB_MIGRATOR_PASSWORD`, `EDB_EDD_PASSWORD`, `EDB_AAPI_PASSWORD`, and the same in `EDB_ADMIN_URL`, `EDB_MIGRATOR_URL`                       |
+| `apps/auth-api/.env`           | `EDB_DATABASE_URL` (as `aapi`, with `EDB_AAPI_PASSWORD`)                                                                                                    |
+| `apps/examiner-dashboard/.env` | `EDB_DATABASE_URL` (as `edd`, with `EDB_EDD_PASSWORD`), `COOKIE_KEY` (`openssl rand -hex 64`), `GOOGLE_OAUTH_ID`, `GOOGLE_OAUTH_SECRET` ([Auth](./auth.md)) |
+| Others                         | Defaults work for `ENVIRONMENT=development`. `SENTRY_DSN` stays empty                                                                                       |
 
 All variables: [Environment Variables](./deployment/environment-variables.md).
 
 ### eDb
 
-eDd runs migrations on startup, and the `query!` macros need eDb (or `.sqlx/`) to compile.
-
 ```bash
 cd databases/examiner
 docker compose up -d --wait
 set -a; source .env; set +a
-cargo sqlx migrate run
+cargo run -p edb --bin edb-migrate
 ```
+
+Run `edb-migrate` again after pulling new migrations. Reset with `docker compose down -v`.
 
 ### Editor
 
@@ -115,11 +116,11 @@ Shared versions live in `package.json` catalogs: reference with `catalog:` or `c
 CI (`.github/workflows/ci.yml`) runs only jobs whose paths changed. Run the same locally before pushing:
 
 ```bash
-# Root Cargo workspace (eDb running; source databases/examiner/.env for EDB_DATABASE_URL)
+# Root Cargo workspace (eDb running; source databases/examiner/.env for EDB_ADMIN_URL)
 cargo fmt --all --check
-SQLX_OFFLINE=true cargo clippy --workspace --all-targets --locked
+cargo clippy --workspace --all-targets --locked
 cargo clippy -p runtime --no-default-features --all-targets --locked
-DATABASE_URL=$EDB_DATABASE_URL cargo test --workspace --locked
+DATABASE_URL=$EDB_ADMIN_URL cargo test --workspace --locked
 
 # dApp backend
 cargo fmt --all --check --manifest-path apps/desktop-app/Cargo.toml
@@ -129,15 +130,18 @@ cargo test --workspace --locked --manifest-path apps/desktop-app/Cargo.toml
 # Bun
 bun run check
 bun run build
+
+# Deploy Action (migration gate, rollback)
+(cd deploy && bun test)
 ```
 
 Clippy `all` is `deny`. Format Rust with `rustfmt` (`rustfmt.toml`), eDd client with `bun --filter examiner-dashboard-client fmt` (oxfmt).
 
 ### Database Changes
 
-eDb schema, migrations and queries live in crate `edb` (`databases/examiner/`). Run every step from that directory with eDb up (`docker compose up -d --wait`).
+eDb schema, migrations and queries live in crate `edb` (`databases/examiner/`). Run every step from that directory with eDb up (`docker compose up -d --wait`). Only add, release, then remove: drop or rename only once no running or `previous` eDd or aAPI image uses the object. Never edit an applied migration.
 
-`sqlx-cli` reads `EDB_DATABASE_URL` from its `.env`; `cargo` does not, so export it first.
+`sqlx-cli` reads `EDB_MIGRATOR_URL` from its `.env`; `cargo` does not, so export it first.
 
 1. Create a reversible migration pair:
 
@@ -145,20 +149,20 @@ eDb schema, migrations and queries live in crate `edb` (`databases/examiner/`). 
 cargo sqlx migrate add -r -s <name> # migrations/NNNN_<name>.{up,down}.sql
 ```
 
-2. Write `up` and `down` SQL. `down` is for local development only; production never runs it.
+2. Write `up` and `down` SQL, naming the schema (`edd.users`; `shared` if both apps write the table, see [eDb schemas](./apps/examiner-database.md#schemas)), and grant each app role what it needs on new tables. `down` is for local development only; production never runs it.
 3. Apply it to local eDb:
 
 ```bash
-cargo sqlx migrate run
+cargo run -p edb --bin edb-migrate # or: cargo sqlx migrate run
 ```
 
-To iterate on uncommitted migration: `cargo sqlx migrate revert`, make edits, then run `cargo sqlx migrate run`.
+To iterate on uncommitted migration: `cargo sqlx migrate revert`, make edits, then run it again.
 
-4. Add or change queries in `src/` (one module per table group, each an `impl Database` block of `query!`/`query_as!`). `cargo check -p edb` validates them against local eDb.
-5. Test with `#[sqlx::test]`. It reads `DATABASE_URL`, not `sqlx.toml`, and creates a migrated database per test:
+4. Add or change queries in `src/edd/`, `src/aapi/` or `src/shared/` (one module per table group, each an `impl Database` block of `query!`/`query_as!`). `SQLX_OFFLINE` is `true` in `.cargo/config.toml`, so `cargo check -p edb` checks them against committed `.sqlx/`, and fails on a new or changed query. To validate against local eDb, override it: `SQLX_OFFLINE=false cargo check -p edb`.
+5. Test with `#[sqlx::test(migrations = false)]`, calling `testing::setup` first: it bootstraps roles and schemas, then migrates as `edb_migrator`. Query through `testing::database_as` to run as the app's role. `#[sqlx::test]` reads `DATABASE_URL`, not `sqlx.toml`, and creates a database per test:
 
 ```bash
-DATABASE_URL=$EDB_DATABASE_URL cargo test -p edb
+DATABASE_URL=$EDB_ADMIN_URL cargo test -p edb
 ```
 
 6. Refresh offline query data:
@@ -169,7 +173,7 @@ cargo sqlx prepare
 
 Pre-commit hook (`git config core.hooksPath .githooks`) runs this and stages `.sqlx/` on commit when eDb files are staged. It never blocks the commit: if it warns with `cargo sqlx prepare failed; .sqlx/ may be stale`, manually run step 6.
 
-7. Commit migration, queries and `.sqlx/` together. Docker and CI build with `SQLX_OFFLINE=true`. CI's clippy fails on a stale `.sqlx/`.
+7. Commit migration, queries and `.sqlx/` together. Local (`.cargo/config.toml`), Docker and CI builds all use `SQLX_OFFLINE=true`. CI fails on a stale `.sqlx/`: offline clippy on a missing query, `cargo sqlx prepare --check` on one whose types changed.
 
 ### Commits and PRs
 
@@ -179,9 +183,9 @@ Pre-commit hook (`git config core.hooksPath .githooks`) runs this and stages `.s
 <type>(<scope>): <summary>
 ```
 
-| Part  | Values                                                                                    |
-| ----- | ----------------------------------------------------------------------------------------- |
-| type  | `feat`, `fix`, `docs`, `chore`, `dev`. `feat` and `fix` trigger release; `chore` does not |
-| scope | App or area: `aAPI`, `eDd`, `eDb`, `wApp`, `dApp`, `docs`, `.github`. Omit when repo-wide |
+| Part  | Values                                                                                             |
+| ----- | -------------------------------------------------------------------------------------------------- |
+| type  | `feat`, `fix`, `docs`, `chore`, `dev`, `refactor`. `feat` and `fix` trigger release; others do not |
+| scope | App or area: `aAPI`, `eDd`, `eDb`, `wApp`, `dApp`, `docs`, `.github`. Omit when repo-wide          |
 
-Follow [Conventions](./conventions/README.md).
+Follow [Database](./conventions/databases.md) and [Rust](./conventions/rust.md) conventions.

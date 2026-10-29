@@ -23,23 +23,16 @@ graph LR
   wApp["wApp"] -->|"One-time pairing code from dApp attempt, short-lived bearer session token; authZ scoped to paired attempt"| aAPI["aAPI"]
 ```
 
-## aAPI → mDb
+## aAPI → eDb
 
 ```mermaid
 graph LR
-  aAPI["aAPI"] -->|"aAPI DB user; authZ read/write candidates, attempts, responses, evidence"| mDb[("mDb")]
-```
-
-## eDd → mDb
-
-```mermaid
-graph LR
-  eDd["eDd"] -->|"eDd DB user; authZ read candidate data, write moderation outcomes only"| mDb[("mDb")]
+  aAPI["aAPI"] -->|"DB role aapi: no DDL; authZ read/write candidates, attempts, responses, evidence"| eDb[("eDb")]
 ```
 
 ## eDd → eDb
 
 ```mermaid
 graph LR
-  eDd["eDd"] -->|"eDd DB user; authZ full access, sole user"| eDb[("eDb")]
+  eDd["eDd"] -->|"DB role edd: no DDL; authZ examiner identity, sessions, moderation outcomes; read candidate data"| eDb[("eDb")]
 ```

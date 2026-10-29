@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT user_id, expires_at FROM sessions WHERE id_hash = $1 AND expires_at > now()",
+  "query": "SELECT user_id, expires_at FROM edd.sessions WHERE id_hash = $1 AND expires_at > now()",
   "describe": {
     "columns": [
       {
@@ -9,7 +9,7 @@
         "type_info": "Uuid",
         "origin": {
           "Table": {
-            "table": "sessions",
+            "table": "edd.sessions",
             "name": "user_id"
           }
         }
@@ -20,7 +20,7 @@
         "type_info": "Timestamptz",
         "origin": {
           "Table": {
-            "table": "sessions",
+            "table": "edd.sessions",
             "name": "expires_at"
           }
         }
@@ -36,5 +36,5 @@
       false
     ]
   },
-  "hash": "1f815ffa3db0ce0c2de1fe5d0ba12132107c36224bb87af64bc5f2095a68a5a1"
+  "hash": "07f556ec658a9b043ffad4818e10bca0c5cb6cb0aca9585e82c84ac052c207b7"
 }

@@ -61,12 +61,15 @@ Generate cookie key with `openssl rand -hex 64`. Create these Komodo Variables b
 
 ## Examiner Database
 
-Until production moves to hosted Postgres, eDb runs as Komodo stack `exam-platform-examiner-db` (`databases/examiner/compose.yaml`). Generate a password with `openssl rand -hex 32`, then create secret Variables:
+Until production moves to hosted Postgres, eDb runs as Komodo stack `exam-platform-examiner-db` (`databases/examiner/compose.yaml`). It holds one schema per app plus `shared`, all owned by role `edb_migrator`; the apps connect as roles `edd` and `aapi`, which cannot change the schema. Generate four passwords with `openssl rand -hex 32`, then create secret Variables:
 
-- `EXAM_PLATFORM_EXAMINER_DB_PASSWORD`: the password.
-- `EXAM_PLATFORM_EXAMINER_DASHBOARD_EDB_DATABASE_URL`: `postgres://edd:<password>@examiner-db:5432/examiner`.
+- `EXAM_PLATFORM_EXAMINER_DB_PASSWORD`: superuser `postgres`. Bootstrap only.
+- `EXAM_PLATFORM_EXAMINER_DB_MIGRATOR_PASSWORD`, `EXAM_PLATFORM_EXAMINER_DB_EDD_PASSWORD`, `EXAM_PLATFORM_EXAMINER_DB_AAPI_PASSWORD`: roles `edb_migrator`, `edd` and `aapi`.
+- `EXAM_PLATFORM_EXAMINER_DB_MIGRATOR_URL`: `postgres://edb_migrator:<migrator password>@examiner-db:5432/examiner`. Both backend stacks pass it to their `migrate` service only.
+- `EXAM_PLATFORM_EXAMINER_DASHBOARD_EDB_DATABASE_URL`: `postgres://edd:<edd password>@examiner-db:5432/examiner`.
+- `EXAM_PLATFORM_AUTH_API_EDB_DATABASE_URL`: `postgres://aapi:<aapi password>@examiner-db:5432/examiner`.
 
-Deploy the eDb stack by hand before eDd's first deploy. The deploy Action does not touch it. eDd migrates the schema on startup.
+Deploy the eDb stack by hand before the first aAPI and eDd deploys. The deploy Action does not touch it. `initdb/` creates the roles and schemas on an empty volume only: a volume from before `edb_migrator` existed has app-owned schemas and per-app migration tables, so delete it first. The deploy Action runs the image's `edb-migrate` before every backend deploy, so aAPI and eDd deploy in any order. `EXAM_PLATFORM_<APP>_MIGRATE_IMAGE` Variables are created by the Action.
 
 ## Komodo Log-In
 
