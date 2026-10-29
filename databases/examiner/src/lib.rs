@@ -53,7 +53,7 @@ pub struct Database {
 
 impl Database {
     /// Connects as an app's role.
-    /// 
+    ///
     /// Never migrates. `edb-migrate` should have already run.
     pub async fn connect(url: &str) -> Result<Self, sqlx::Error> {
         let pool = PgPoolOptions::new()

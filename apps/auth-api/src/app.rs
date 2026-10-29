@@ -1,10 +1,11 @@
 use axum::{Router, routing::get};
 use edb::Database;
 
+use crate::config::AppConfig;
 use crate::routes;
 
-pub async fn app(edb_database_url: String) -> Router {
-    let database = Database::connect(&edb_database_url)
+pub async fn app(config: &AppConfig) -> Router {
+    let database = Database::connect(&config.edb_database_url)
         .await
         .expect("failed to connect to eDb");
 

@@ -1,5 +1,6 @@
 //! aAPI: candidate identity and the attempt path. The only application candidate devices reach.
 mod app;
+mod config;
 mod routes;
 
 use runtime::{Exit, ServerConfig};
@@ -14,16 +15,10 @@ fn main() -> Exit {
         }
     };
 
-    let Some(edb_database_url) = std::env::var("EDB_DATABASE_URL")
-        .ok()
-        .filter(|v| !v.is_empty())
-    else {
-        eprintln!("configuration error: EDB_DATABASE_URL not set");
-        return Exit::Config;
-    };
-
     // Before the Tokio runtime starts, so every worker thread inherits the Sentry hub.
     let _sentry = runtime::telemetry::init(runtime::release!(), &config.telemetry);
 
-    runtime::serve(config.listen_addr, app::app(edb_database_url))
+    let app_config = config::AppConfig::new();
+
+    runtime::serve(config.listen_addr, app::app(&app_config))
 }

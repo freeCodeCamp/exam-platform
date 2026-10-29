@@ -63,4 +63,4 @@ Project can now be built without a database connection (`DATABASE_URL` must be u
 cargo sqlx prepare
 ```
 
-To ensure `.sqlx/` is kept up-to-date, both with the queries in project and database schema itself, run `cargo install sqlx-cli && cargo sqlx prepare --check` in CI.
+To ensure `.sqlx/` is kept up-to-date, both with the queries in project and database schema itself, CI runs `cargo sqlx prepare --check` against a freshly migrated database.

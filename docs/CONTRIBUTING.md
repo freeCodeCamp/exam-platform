@@ -149,7 +149,7 @@ eDb schema, migrations and queries live in crate `edb` (`databases/examiner/`). 
 cargo sqlx migrate add -r -s <name> # migrations/NNNN_<name>.{up,down}.sql
 ```
 
-2. Write `up` and `down` SQL, naming the schema (`edd.users`; `shared` if both apps write the table, see [eDb schemas](../databases/examiner/README.md#schemas)), and grant each app role what it needs on new tables. `down` is for local development only; production never runs it.
+2. Write `up` and `down` SQL, naming the schema (`edd.users`; `shared` if both apps write the table, see [eDb schemas](./apps/examiner-database.md#schemas)), and grant each app role what it needs on new tables. `down` is for local development only; production never runs it.
 3. Apply it to local eDb:
 
 ```bash
@@ -158,7 +158,7 @@ cargo run -p edb --bin edb-migrate # or: cargo sqlx migrate run
 
 To iterate on uncommitted migration: `cargo sqlx migrate revert`, make edits, then run it again.
 
-4. Add or change queries in `src/edd/`, `src/aapi/` or `src/shared/` (one module per table group, each an `impl Database` block of `query!`/`query_as!`). `cargo check -p edb` validates them against local eDb.
+4. Add or change queries in `src/edd/`, `src/aapi/` or `src/shared/` (one module per table group, each an `impl Database` block of `query!`/`query_as!`). `SQLX_OFFLINE` is `true` in `.cargo/config.toml`, so `cargo check -p edb` checks them against committed `.sqlx/`, and fails on a new or changed query. To validate against local eDb, override it: `SQLX_OFFLINE=false cargo check -p edb`.
 5. Test with `#[sqlx::test(migrations = false)]`, calling `testing::setup` first: it bootstraps roles and schemas, then migrates as `edb_migrator`. Query through `testing::database_as` to run as the app's role. `#[sqlx::test]` reads `DATABASE_URL`, not `sqlx.toml`, and creates a database per test:
 
 ```bash
@@ -173,7 +173,7 @@ cargo sqlx prepare
 
 Pre-commit hook (`git config core.hooksPath .githooks`) runs this and stages `.sqlx/` on commit when eDb files are staged. It never blocks the commit: if it warns with `cargo sqlx prepare failed; .sqlx/ may be stale`, manually run step 6.
 
-7. Commit migration, queries and `.sqlx/` together. Local (`.cargo/config.toml`), Docker and CI builds all use `SQLX_OFFLINE=true`. CI's clippy fails on a stale `.sqlx/`.
+7. Commit migration, queries and `.sqlx/` together. Local (`.cargo/config.toml`), Docker and CI builds all use `SQLX_OFFLINE=true`. CI fails on a stale `.sqlx/`: offline clippy on a missing query, `cargo sqlx prepare --check` on one whose types changed.
 
 ### Commits and PRs
 
@@ -183,9 +183,9 @@ Pre-commit hook (`git config core.hooksPath .githooks`) runs this and stages `.s
 <type>(<scope>): <summary>
 ```
 
-| Part  | Values                                                                                    |
-| ----- | ----------------------------------------------------------------------------------------- |
-| type  | `feat`, `fix`, `docs`, `chore`, `dev`. `feat` and `fix` trigger release; `chore` does not |
-| scope | App or area: `aAPI`, `eDd`, `eDb`, `wApp`, `dApp`, `docs`, `.github`. Omit when repo-wide |
+| Part  | Values                                                                                             |
+| ----- | -------------------------------------------------------------------------------------------------- |
+| type  | `feat`, `fix`, `docs`, `chore`, `dev`, `refactor`. `feat` and `fix` trigger release; others do not |
+| scope | App or area: `aAPI`, `eDd`, `eDb`, `wApp`, `dApp`, `docs`, `.github`. Omit when repo-wide          |
 
 Follow [Database](./conventions/databases.md) and [Rust](./conventions/rust.md) conventions.

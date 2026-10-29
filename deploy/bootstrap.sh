@@ -112,7 +112,7 @@ summary() {
 Komodo: https://$domain
 First login: user $user, password from
   sed -n 's/^KOMODO_INIT_ADMIN_PASSWORD=//p' $DIR/deploy/.env
-It only applies to the first start. Next: first-time setup in $DIR/deploy/README.md.
+It only applies to the first start. Next: first-time setup in $DIR/docs/deployment/setup.md.
 EOF
 }
 

@@ -119,6 +119,23 @@ jobs:
       # dApp builds runtime without `server`; clippy only lints workspace members.
       - run: cargo clippy -p runtime --no-default-features --all-targets --locked
       - run: cargo test --workspace --locked
+      # Run to catch stale .sqlx when query! text is unchanged
+      - name: Bootstrap eDb
+        env:
+          POSTGRES_ID: ${{ job.services.postgres.id }}
+        run: |
+          docker exec -i "$POSTGRES_ID" psql -v ON_ERROR_STOP=1 -U postgres -d examiner \
+            < databases/examiner/initdb/10-bootstrap.sql
+          docker exec -i "$POSTGRES_ID" psql -v ON_ERROR_STOP=1 -U postgres -d examiner \
+            -c "ALTER ROLE edb_migrator PASSWORD 'edb_migrator'"
+      - run: cargo run -p edb --bin edb-migrate --locked
+        env:
+          EDB_MIGRATOR_URL: postgres://edb_migrator:edb_migrator@127.0.0.1:5432/examiner
+      - run: cargo install sqlx-cli --version 0.9.0 --locked --no-default-features --features rustls,postgres,sqlx-toml
+      - run: cargo sqlx prepare --check
+        working-directory: databases/examiner
+        env:
+          EDB_MIGRATOR_URL: postgres://edb_migrator:edb_migrator@127.0.0.1:5432/examiner
 
   desktop:
     name: Desktop Rust
