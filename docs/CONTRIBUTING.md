@@ -74,7 +74,7 @@ All variables: [Environment Variables](./deployment/environment-variables.md).
 cd databases/examiner
 docker compose up -d --wait
 set -a; source .env; set +a
-SQLX_OFFLINE=true cargo run -p edb --bin edb-migrate
+cargo run -p edb --bin edb-migrate
 ```
 
 Run `edb-migrate` again after pulling new migrations. Reset with `docker compose down -v`.
@@ -118,7 +118,7 @@ CI (`.github/workflows/ci.yml`) runs only jobs whose paths changed. Run the same
 ```bash
 # Root Cargo workspace (eDb running; source databases/examiner/.env for EDB_ADMIN_URL)
 cargo fmt --all --check
-SQLX_OFFLINE=true cargo clippy --workspace --all-targets --locked
+cargo clippy --workspace --all-targets --locked
 cargo clippy -p runtime --no-default-features --all-targets --locked
 DATABASE_URL=$EDB_ADMIN_URL cargo test --workspace --locked
 
@@ -173,7 +173,7 @@ cargo sqlx prepare
 
 Pre-commit hook (`git config core.hooksPath .githooks`) runs this and stages `.sqlx/` on commit when eDb files are staged. It never blocks the commit: if it warns with `cargo sqlx prepare failed; .sqlx/ may be stale`, manually run step 6.
 
-7. Commit migration, queries and `.sqlx/` together. Docker and CI build with `SQLX_OFFLINE=true`. CI's clippy fails on a stale `.sqlx/`.
+7. Commit migration, queries and `.sqlx/` together. Local (`.cargo/config.toml`), Docker and CI builds all use `SQLX_OFFLINE=true`. CI's clippy fails on a stale `.sqlx/`.
 
 ### Commits and PRs
 

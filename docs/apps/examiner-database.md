@@ -58,8 +58,7 @@ Needs `sqlx-cli` 0.9: `cargo install sqlx-cli --version 0.9.0 --locked --no-defa
 cp .env.example .env   # set the four passwords, and the same in the two URLs
 docker compose up -d --wait
 set -a; source .env; set +a
-# Offline: the query macros cannot check against an unmigrated database.
-SQLX_OFFLINE=true cargo run -p edb --bin edb-migrate
+cargo run -p edb --bin edb-migrate
 git config core.hooksPath .githooks   # pre-commit refreshes and stages .sqlx/
 ```
 
@@ -73,7 +72,7 @@ From this directory:
 2. Write the `up` and `down` SQL, naming the schema. Pick the schema by who writes the table ([schemas](#schemas)). `down` is for local development only; production never runs it.
 3. Grant each app role exactly what it needs on the new table, in the same migration, e.g. `GRANT SELECT, INSERT, UPDATE, DELETE ON edd.moderation_outcomes TO edd` and `GRANT SELECT ON edd.moderation_outcomes TO aapi`. A new schema also needs `GRANT USAGE`.
 4. `cargo run -p edb --bin edb-migrate` (or `cargo sqlx migrate run`). Iterate on an uncommitted migration with `cargo sqlx migrate revert`.
-5. Change the queries, then commit with eDb running: the pre-commit hook runs `cargo sqlx prepare` and stages `.sqlx/`. It never blocks the commit, so check its warning; CI's offline clippy fails on a stale `.sqlx/`.
+5. Change the queries, then run `cargo sqlx prepare` with eDb running: builds are offline (`.cargo/config.toml`), so a new or changed query fails to compile until `.sqlx/` has it. The pre-commit hook also runs it and stages `.sqlx/`. It never blocks the commit, so check its warning; CI's offline clippy fails on a stale `.sqlx/`.
 6. Tests: `DATABASE_URL=$EDB_ADMIN_URL cargo test -p edb`. Use `#[sqlx::test(migrations = false)]` and call `testing::setup` first: it bootstraps, then migrates as `edb_migrator`. Query through `testing::database_as(&pool, Role::Edd)` to test as the app does; test denials with `SET LOCAL ROLE`.
 
 Rules:
