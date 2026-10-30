@@ -1,0 +1,4 @@
+"*.{ts,tsx}":
+  - bun run lint --
+  - bun run fmt -- --no-error-on-unmatched-pattern
+"!(*.ts|*.tsx)": bun run fmt -- --no-error-on-unmatched-pattern

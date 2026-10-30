@@ -26,10 +26,10 @@ cargo install mdbook@0.5.4 mdbook-mermaid@0.17.1 --locked # optional
 git clone https://github.com/freeCodeCamp/exam-platform.git
 cd exam-platform
 bun install
-# Hook to catch if offline db changes are not committed
-git config core.hooksPath .githooks
 docker network create platform
 ```
+
+`bun install` also installs the Husky pre-commit hook.
 
 ### Environment
 
@@ -171,7 +171,7 @@ DATABASE_URL=$EDB_ADMIN_URL cargo test -p edb
 cargo sqlx prepare
 ```
 
-Pre-commit hook (`git config core.hooksPath .githooks`) runs this and stages `.sqlx/` on commit when eDb files are staged. It never blocks the commit: if it warns with `cargo sqlx prepare failed; .sqlx/ may be stale`, manually run step 6.
+The Husky pre-commit hook runs this and stages `.sqlx/` when eDb files are staged. This step never blocks the commit: if it warns with `cargo sqlx prepare failed; .sqlx/ may be stale`, manually run step 6.
 
 7. Commit migration, queries and `.sqlx/` together. Local (`.cargo/config.toml`), Docker and CI builds all use `SQLX_OFFLINE=true`. CI fails on a stale `.sqlx/`: offline clippy on a missing query, `cargo sqlx prepare --check` on one whose types changed.
 
