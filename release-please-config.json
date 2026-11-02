@@ -1,0 +1,43 @@
+{
+  "$schema": "https://raw.githubusercontent.com/googleapis/release-please/v17.6.0/schemas/config.json",
+  "release-type": "simple",
+  "include-component-in-tag": true,
+  "bump-minor-pre-major": true,
+  "initial-version": "0.1.0",
+  "plugins": ["cargo-workspace"],
+  "packages": {
+    "apps/auth-api": {
+      "component": "auth-api",
+      "release-type": "rust"
+    },
+    "apps/desktop-app": {
+      "component": "desktop-app",
+      "extra-files": [
+        {
+          "type": "toml",
+          "path": "backend/Cargo.toml",
+          "jsonpath": "$.package.version"
+        },
+        {
+          "type": "toml",
+          "path": "Cargo.lock",
+          "jsonpath": "$.package[?(@.name.value==='desktop-app')].version"
+        }
+      ]
+    },
+    "apps/examiner-dashboard": {
+      "component": "examiner-dashboard",
+      "release-type": "rust"
+    },
+    "apps/web-app": {
+      "component": "web-app",
+      "extra-files": [
+        {
+          "type": "json",
+          "path": "package.json",
+          "jsonpath": "$.version"
+        }
+      ]
+    }
+  }
+}

@@ -1,7 +1,6 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "Exam Platform",
-  "version": "../package.json",
   "identifier": "org.freecodecamp.exam-platform",
   "build": {
     "beforeDevCommand": "bun run dev",
