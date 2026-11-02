@@ -1,0 +1,12 @@
+# Refresh eDb's offline query data when database files are staged. This is
+# best-effort: CI's offline clippy check remains the final safeguard.
+if ! git diff --cached --quiet -- databases/examiner; then
+# sqlx-cli reads EDB_MIGRATOR_URL from this directory's .env (see sqlx.toml).
+  if (cd databases/examiner && cargo sqlx prepare >/dev/null 2>&1); then
+    git add databases/examiner/.sqlx
+  else
+    echo "pre-commit: cargo sqlx prepare failed; .sqlx/ may be stale" >&2
+  fi
+fi
+
+bun run lint-staged
