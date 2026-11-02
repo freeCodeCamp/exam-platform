@@ -7,7 +7,8 @@
     "build": "astro check && astro build",
     "check": "astro check",
     "fmt": "oxfmt",
-    "lint": "oxlint"
+    "lint": "oxlint",
+    "test": "vitest"
   },
   "dependencies": {
     "@astrojs/react": "catalog:astro",
@@ -26,13 +27,18 @@
   "devDependencies": {
     "@astrojs/check": "catalog:astro",
     "@tanstack/react-query-devtools": "catalog:",
+    "@testing-library/dom": "catalog:astro",
+    "@testing-library/jest-dom": "catalog:astro",
+    "@testing-library/react": "catalog:astro",
     "@types/bun": "catalog:",
     "@types/react": "catalog:",
     "@types/react-dom": "catalog:",
+    "jsdom": "catalog:astro",
     "oxfmt": "catalog:",
     "oxlint": "catalog:",
     "oxlint-config-presets": "catalog:",
     "oxlint-tsgolint": "catalog:",
-    "typescript": "catalog:astro"
+    "typescript": "catalog:astro",
+    "vitest": "catalog:"
   }
 }
