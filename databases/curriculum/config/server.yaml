@@ -1,0 +1,27 @@
+# Dolt sql-server config. Mounted read-only; changes apply on restart.
+# Info level: debug logs routine SQL and results, which include private answer keys.
+log_level: info
+log_format: json
+behavior:
+  autocommit: true
+  dolt_transaction_commit: false
+  event_scheduler: "OFF"
+  auto_gc_behavior:
+    enable: false
+listener:
+  host: 0.0.0.0
+  port: 3306
+  max_connections: 50
+  read_timeout_millis: 300000
+  write_timeout_millis: 300000
+# Explicit paths, all on the one volume, so a stopped-volume copy is a complete backup.
+data_dir: /var/lib/dolt/databases
+cfg_dir: /var/lib/dolt/config
+privilege_file: /var/lib/dolt/config/privileges.db
+branch_control_file: /var/lib/dolt/config/branch_control.db
+system_variables:
+  # Points at a directory that does not exist: no LOAD DATA / SELECT INTO OUTFILE.
+  secure_file_priv: /var/lib/dolt/disabled-file-import
+  local_infile: false
+  dolt_allow_commit_conflicts: 0
+  dolt_force_transaction_commit: 0

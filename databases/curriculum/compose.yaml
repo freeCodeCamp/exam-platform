@@ -1,0 +1,41 @@
+# cDb. Run from this directory: `docker compose up -d --wait`. Self-hosted Dolt.
+services:
+  curriculum-db:
+    image: dolthub/dolt-sql-server:2.6.2@sha256:c8f51ad58aaa585850dea9fd77268aab3de1aaef4cd48ce83900eb103ea5ebf7
+    # Replaces the image's entrypoint, so no init hooks run on restart.
+    entrypoint: ["/bin/bash", "/opt/curriculum/server.sh"]
+    restart: unless-stopped
+    stop_grace_period: 120s
+    ports: ["127.0.0.1:${CDB_PORT:-13306}:3306"]
+    environment:
+      HOME: /var/lib/dolt/home
+      # Usage events: off for the server and the healthcheck's CLI.
+      DOLT_DISABLE_EVENT_FLUSH: "1"
+      # `sql-server` creates root from these when no privileges file exists: first start only.
+      DOLT_ROOT_PASSWORD: ${CDB_ROOT_PASSWORD:?set CDB_ROOT_PASSWORD}
+      # Host connections arrive through Docker's network, not loopback. The port is loopback-only.
+      DOLT_ROOT_HOST: "%"
+    volumes:
+      # Databases, users and grants, branch permissions, and HOME's global config.
+      - curriculum-db:/var/lib/dolt
+      - ./config/server.yaml:/etc/curriculum/server.yaml:ro
+      - ./scripts/server.sh:/opt/curriculum/server.sh:ro
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          'DOLT_CLI_PASSWORD="$$DOLT_ROOT_PASSWORD" dolt --host 127.0.0.1 --port 3306 --user root --no-tls sql -q ''SELECT 1'' >/dev/null 2>&1',
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 15s
+    networks:
+      platform:
+        aliases: [curriculum-db]
+volumes:
+  curriculum-db:
+networks:
+  platform:
+    name: ${PLATFORM_NETWORK:-platform}
+    external: true

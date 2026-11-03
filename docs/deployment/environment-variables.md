@@ -77,6 +77,14 @@ Native dashboard execution needs exported environment variables; copying `.env` 
 | `SENTRY_DSN`   | unless `ENVIRONMENT=development` | empty                                   | `.env`, compile time | Sentry project DSN. Empty disables Sentry in development.   |
 | `AUTH_API_URL` | unless `ENVIRONMENT=development` | `http://127.0.0.1:13001` in development | `.env`               | Auth API origin.                                            |
 
+### `databases/curriculum`
+
+| Name                | Required | Default    | Where Set | Description                                                                                        |
+| ------------------- | -------- | ---------- | --------- | -------------------------------------------------------------------------------------------------- |
+| `CDB_ROOT_PASSWORD` | yes      |            | `.env`    | Dolt `root`: `openssl rand -hex 32`. Creates root on an empty volume only; also the healthcheck's. |
+| `CDB_PORT`          | no       | `13306`    | `.env`    | Host port on `127.0.0.1`. Container always listens on `3306`.                                      |
+| `PLATFORM_NETWORK`  | no       | `platform` | `.env`    | Shared external Docker network name.                                                               |
+
 ### `deploy/`
 
 Set in `deploy/.env` on the Droplet. `bootstrap.sh` copies `.env.example`, then fills each empty secret once with `openssl rand -hex 32`.
