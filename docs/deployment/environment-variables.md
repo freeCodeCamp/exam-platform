@@ -58,6 +58,15 @@ One-shot service in each backend's `compose.yaml`, profile `migrate`: runs the i
 | `MIGRATE_IMAGE`    | yes      | empty   | Komodo (`EXAM_PLATFORM_<APP>_MIGRATE_IMAGE`, by deploy Action)               | Image whose `edb-migrate` runs. Never built: empty fails.                       |
 | `EDB_MIGRATOR_URL` | yes      | empty   | `databases/examiner/.env`, Komodo (`EXAM_PLATFORM_EXAMINER_DB_MIGRATOR_URL`) | eDb Postgres URL as role `edb_migrator`. Also `cargo sqlx`'s URL (`sqlx.toml`). |
 
+### `migrate-cdb` service (`apps/examiner-dashboard` only)
+
+One-shot service in eDd's `compose.yaml`, profile `migrate`: runs the image's `cdb-migrate`, after `migrate`. Gets only these. aAPI never migrates cDb.
+
+| Name               | Required | Default | Where Set                                                                   | Description                                                                                                                                                                                                                                   |
+| ------------------ | -------- | ------- | --------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `MIGRATE_IMAGE`    | yes      | empty   | Komodo (`EXAM_PLATFORM_EXAMINER_DASHBOARD_MIGRATE_IMAGE`, by deploy Action) | Image whose `cdb-migrate` runs. Never built: empty fails.                                                                                                                                                                                     |
+| `CDB_MIGRATOR_URL` | yes      | empty   | Komodo (`EXAM_PLATFORM_CURRICULUM_DB_MIGRATOR_URL`)                         | `mysql://root:<CDB_ROOT_PASSWORD>@curriculum-db:3306/curriculum`: root until app roles exist. Names the database, never a `curriculum/<branch>` revision. Also `cargo sqlx`'s URL (`sqlx.toml`) and the cdb tests' server (unset: they skip). |
+
 Native dashboard execution needs exported environment variables; copying `.env` alone does not load them. Export them first: `set -a; source .env; set +a`. Mock mode defaults to test credentials/key and `http://127.0.0.1:13002/auth/google/callback`. Both need a running, migrated eDb.
 
 ### `apps/web-app`
@@ -109,16 +118,16 @@ Set in `deploy/.env` on the Droplet. `bootstrap.sh` copies `.env.example`, then 
 
 Per app, `EXAM_PLATFORM_<APP>_`, with `<APP>` one of `AUTH_API`, `EXAMINER_DASHBOARD`, `WEB_APP`.
 
-| Name                                          | Required | Default | Where Set                        | Description                                                         |
-| --------------------------------------------- | -------- | ------- | -------------------------------- | ------------------------------------------------------------------- |
-| `EXAM_PLATFORM_<APP>_IMAGE`                   | yes      |         | Komodo, written by deploy Action | Image the stack runs. Set before each deploy, so may be unhealthy.  |
-| `EXAM_PLATFORM_<APP>_IMAGE_HEALTHY`           | no       |         | Komodo, written by deploy Action | Last image confirmed healthy. Rollback target.                      |
-| `EXAM_PLATFORM_<APP>_IMAGE_PREVIOUS`          | no       |         | Komodo, written by deploy Action | Healthy image before that. Target for `previous`.                   |
-| `EXAM_PLATFORM_<APP>_MIGRATE_IMAGE`           | no       |         | Komodo, written by deploy Action | aAPI and eDd: image whose `edb-migrate` the `migrate` service runs. |
-| `EXAM_PLATFORM_AUTH_API_SENTRY_DSN`           | yes      |         | Komodo                           | Passed to auth-api as `SENTRY_DSN`.                                 |
-| `EXAM_PLATFORM_EXAMINER_DASHBOARD_SENTRY_DSN` | yes      |         | Komodo                           | Passed to examiner-dashboard as `SENTRY_DSN`.                       |
+| Name                                          | Required | Default | Where Set                        | Description                                                                               |
+| --------------------------------------------- | -------- | ------- | -------------------------------- | ----------------------------------------------------------------------------------------- |
+| `EXAM_PLATFORM_<APP>_IMAGE`                   | yes      |         | Komodo, written by deploy Action | Image the stack runs. Set before each deploy, so may be unhealthy.                        |
+| `EXAM_PLATFORM_<APP>_IMAGE_HEALTHY`           | no       |         | Komodo, written by deploy Action | Last image confirmed healthy. Rollback target.                                            |
+| `EXAM_PLATFORM_<APP>_IMAGE_PREVIOUS`          | no       |         | Komodo, written by deploy Action | Healthy image before that. Target for `previous`.                                         |
+| `EXAM_PLATFORM_<APP>_MIGRATE_IMAGE`           | no       |         | Komodo, written by deploy Action | aAPI and eDd: image whose migrators the `migrate` (and eDd's `migrate-cdb`) services run. |
+| `EXAM_PLATFORM_AUTH_API_SENTRY_DSN`           | yes      |         | Komodo                           | Passed to auth-api as `SENTRY_DSN`.                                                       |
+| `EXAM_PLATFORM_EXAMINER_DASHBOARD_SENTRY_DSN` | yes      |         | Komodo                           | Passed to examiner-dashboard as `SENTRY_DSN`.                                             |
 
-Dashboard, aAPI and eDb also require these Komodo Variables (no defaults):
+Dashboard, aAPI, eDb and cDb also require these Komodo Variables (no defaults):
 
 | Name                                                   | Description                                                                                      |
 | ------------------------------------------------------ | ------------------------------------------------------------------------------------------------ |
@@ -133,6 +142,8 @@ Dashboard, aAPI and eDb also require these Komodo Variables (no defaults):
 | `EXAM_PLATFORM_EXAMINER_DB_EDD_PASSWORD`               | Secret; eDb stack passes it as `EDB_EDD_PASSWORD` (role `edd`, empty volume only).               |
 | `EXAM_PLATFORM_EXAMINER_DB_AAPI_PASSWORD`              | Secret; eDb stack passes it as `EDB_AAPI_PASSWORD` (role `aapi`, empty volume only).             |
 | `EXAM_PLATFORM_AUTH_API_EDB_DATABASE_URL`              | Secret; aAPI stack passes it as `EDB_DATABASE_URL`.                                              |
+| `EXAM_PLATFORM_CURRICULUM_DB_ROOT_PASSWORD`            | Secret; cDb stack passes it as `CDB_ROOT_PASSWORD` (Dolt `root`, empty volume only).             |
+| `EXAM_PLATFORM_CURRICULUM_DB_MIGRATOR_URL`             | Secret; eDd stack passes it as `CDB_MIGRATOR_URL` to its `migrate-cdb` service only.             |
 
 ### GitHub Actions
 

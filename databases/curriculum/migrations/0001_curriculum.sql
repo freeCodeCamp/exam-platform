@@ -7,8 +7,7 @@ CREATE TABLE exams (
   -- disabled: new exam attempts cannot be taken
   -- enabled: exam attempts are startable
   -- archived: exam is not expected to ever be taken again, but content needs to be kept around for provenance
-  status ENUM('disabled', 'enabled', 'archived'),
-  CONSTRAINT exam_archived_boolean CHECK (archived IN (0, 1))
+  status ENUM('disabled', 'enabled', 'archived')
 );
 
 -- Split from `exams` so adding an option changes only this table's schema. Historical snapshots
@@ -19,7 +18,7 @@ CREATE TABLE exam_policy (
   exam_id VARCHAR(36) PRIMARY KEY,
   duration_seconds INT NOT NULL,
   CONSTRAINT policy_exam FOREIGN KEY (exam_id) REFERENCES exams (id),
-  CONSTRAINT policy_duration_positive CHECK (duration_seconds > 0),
+  CONSTRAINT policy_duration_positive CHECK (duration_seconds > 0)
 );
 
 CREATE TABLE questions (

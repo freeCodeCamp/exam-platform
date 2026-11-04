@@ -1,8 +1,6 @@
-# As `cdb_migrator`, which owns every object: `sqlx::migrate!()`, the query macros, and
-# `cargo sqlx migrate` / `cargo sqlx prepare` all use this.
 [common]
 database-url-var = "CDB_MIGRATOR_URL"
 
 [migrate]
-# Out of the app schemas: neither app role can read it.
-table-name = "cdb._sqlx_migrations"
+# Versioned (not in `dolt_ignore`), so it stays with each migration's Dolt commit and with merges into stg/prd.
+table-name = "_sqlx_migrations"

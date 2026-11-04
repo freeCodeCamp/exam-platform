@@ -41,6 +41,7 @@ jobs:
               - Cargo.toml
               - Cargo.lock
               - libs/**
+              - databases/curriculum/**
               - databases/examiner/**
             bun-lock: &bun-lock
               - package.json
@@ -118,7 +119,20 @@ jobs:
           SQLX_OFFLINE: "true"
       # dApp builds runtime without `server`; clippy only lints workspace members.
       - run: cargo clippy -p runtime --no-default-features --all-targets --locked
+      # cDb from its own compose.yaml, so tests run against the deployed server.sh and config/.
+      - name: Start cDb
+        working-directory: databases/curriculum
+        run: |
+          export CDB_ROOT_PASSWORD="$(openssl rand -hex 32)"
+          echo "::add-mask::$CDB_ROOT_PASSWORD"
+          docker network create platform
+          docker compose up -d --wait
+          docker compose exec -T curriculum-db sh -c \
+            'DOLT_CLI_PASSWORD="$DOLT_ROOT_PASSWORD" exec dolt --host 127.0.0.1 --port 3306 --user root --no-tls sql -q "CREATE DATABASE curriculum"'
+          echo "CDB_MIGRATOR_URL=mysql://root:$CDB_ROOT_PASSWORD@127.0.0.1:13306/curriculum" >> "$GITHUB_ENV"
+      # cdb's tests each create a database on the server at CDB_MIGRATOR_URL.
       - run: cargo test --workspace --locked
+      - run: cargo run -p cdb --bin cdb-migrate --locked
       # Run to catch stale .sqlx when query! text is unchanged
       - name: Bootstrap eDb
         env:

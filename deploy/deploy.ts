@@ -13,9 +13,9 @@ globalThis.localStorage ??= {
 } as unknown as Storage;
 const { KomodoClient } = await import("komodo_client");
 
-// The Action gives migrations MIGRATE_SECONDS (420s), then a rollout and its rollback DEPLOY_SECONDS (420s)
-// each: keep this above the sum.
-const DEADLINE_SECONDS = 1500;
+// The Action gives each migrate service MIGRATE_SECONDS (420s; eDd runs two), then a rollout and its
+// rollback DEPLOY_SECONDS (420s) each: keep this above the sum.
+const DEADLINE_SECONDS = 1980;
 const POLL_SECONDS = 5;
 const REQUEST_SECONDS = 30;
 

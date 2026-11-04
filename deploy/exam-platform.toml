@@ -6,9 +6,10 @@
 #
 # Stacks run each app's compose.yaml from `main`, the file developers run locally, with IMAGE set
 # to a release digest. They only deploy when GitHub Actions runs the exam-platform-deploy Action:
-# `deploy = false`, no webhooks, no polling. Backend stacks also hold a `migrate` service, which the
-# Action runs (RunStackService: `docker compose run --rm`) from MIGRATE_IMAGE before each deploy.
-# The stack's .env holds both eDb credentials; each container gets only its own.
+# `deploy = false`, no webhooks, no polling. Backend stacks also hold a `migrate` service (eDb), and
+# a `migrate-cdb` service (cDb), which the Action runs (RunStackService: `docker compose run
+# --rm`) from MIGRATE_IMAGE before each deploy. The stack's .env holds the app's database URLs and
+# the migrators'; each container gets only its own.
 
 [[stack]]
 name = "exam-platform-auth-api"
@@ -61,6 +62,7 @@ COOKIE_KEY=[[EXAM_PLATFORM_EXAMINER_DASHBOARD_COOKIE_KEY]]
 EDB_DATABASE_URL=[[EXAM_PLATFORM_EXAMINER_DASHBOARD_EDB_DATABASE_URL]]
 MIGRATE_IMAGE=[[EXAM_PLATFORM_EXAMINER_DASHBOARD_MIGRATE_IMAGE]]
 EDB_MIGRATOR_URL=[[EXAM_PLATFORM_EXAMINER_DB_MIGRATOR_URL]]
+CDB_MIGRATOR_URL=[[EXAM_PLATFORM_CURRICULUM_DB_MIGRATOR_URL]]
 """
 
 # eDb until production moves to hosted Postgres. Not part of the deploy Action: deploy by hand in
@@ -82,6 +84,24 @@ EDB_PASSWORD=[[EXAM_PLATFORM_EXAMINER_DB_PASSWORD]]
 EDB_MIGRATOR_PASSWORD=[[EXAM_PLATFORM_EXAMINER_DB_MIGRATOR_PASSWORD]]
 EDB_EDD_PASSWORD=[[EXAM_PLATFORM_EXAMINER_DB_EDD_PASSWORD]]
 EDB_AAPI_PASSWORD=[[EXAM_PLATFORM_EXAMINER_DB_AAPI_PASSWORD]]
+"""
+
+# cDb. Not part of the deploy Action: deploy by hand in Komodo, before eDd. The volume outlives
+# redeploys. Database `curriculum` and its branches are created by hand.
+[[stack]]
+name = "exam-platform-curriculum-db"
+description = "cDb: Dolt for curriculum content and its history"
+tags = ["exam-platform"]
+[stack.config]
+server = "exam-platform"
+repo = "freeCodeCamp/exam-platform"
+branch = "main"
+run_directory = "databases/curriculum"
+file_paths = ["compose.yaml"]
+pre_deploy.command = "docker network inspect platform >/dev/null 2>&1 || docker network create platform"
+extra_args = ["--wait", "--wait-timeout", "180"]
+environment = """
+CDB_ROOT_PASSWORD=[[EXAM_PLATFORM_CURRICULUM_DB_ROOT_PASSWORD]]
 """
 
 [[stack]]
@@ -121,14 +141,19 @@ file_contents = '''
 //   IMAGE           what the stack runs. Set before each deploy, so it may be unhealthy.
 //   IMAGE_HEALTHY   the last image a deploy confirmed healthy: the rollback target.
 //   IMAGE_PREVIOUS  the healthy image before it, for `previous`.
-//   MIGRATE_IMAGE   backends only: the image whose edb-migrate the stack's `migrate` service runs.
-// Backends migrate eDb from the image first, and deploy only once that succeeds: a failed or
-// unconfirmed migration leaves the running app untouched. Schema changes are never rolled back.
+//   MIGRATE_IMAGE   backends only: the image whose migrators the stack's migrate services run.
+// Backends migrate from the image first (eDb, then for eDd cDb), and deploy only once every one
+// succeeds: a failed or unconfirmed migration leaves the running app untouched. Schema changes are
+// never rolled back.
 // Only admins may write Variables. The Action user is one, so CI needs Execute on this Action only.
 // Komodo interpolates ARGS before the script runs: never echo them unvalidated.
 const APPS = ["auth-api", "examiner-dashboard", "web-app"];
-// Embed edb (databases/examiner), so ship edb-migrate.
-const MIGRATES = ["auth-api", "examiner-dashboard"];
+// Each backend's one-shot migrate services, in order. Both embed edb (databases/examiner) and ship
+// edb-migrate (`migrate`); only eDd ships cdb-migrate (`migrate-cdb`, databases/curriculum).
+const MIGRATES: Record<string, string[]> = {
+  "auth-api": ["migrate"],
+  "examiner-dashboard": ["migrate", "migrate-cdb"],
+};
 const app = String(ARGS.APP);
 if (!APPS.includes(app)) throw new Error(`APP must be one of ${APPS.join(", ")}`);
 
@@ -141,8 +166,9 @@ const migrateImage = `${prefix}_MIGRATE_IMAGE`;
 // Komodo pulls the image, then compose waits up to 120s (the stacks' --wait-timeout) for healthy
 // containers.
 const DEPLOY_SECONDS = 420;
-// The pull, then edb-migrate, which gives up after 300s (TIMEOUT in databases/examiner/src/bin/).
-// deploy.ts waits for a migration, a deploy and its rollback: keep its deadline above the sum.
+// Per migrate service: the pull, then edb-migrate or cdb-migrate, which give up after 300s (TIMEOUT
+// in databases/*/src/bin/). deploy.ts waits for every migration, a deploy and its rollback: keep
+// its deadline above the sum.
 const MIGRATE_SECONDS = 420;
 // How long a request that errored may take to show up as an Update.
 const START_SECONDS = 30;
@@ -231,12 +257,11 @@ async function run(
   return "unknown";
 }
 
-// Runs edb-migrate from `image` in a one-shot container (the stack's `migrate` service), on the
-// Komodo host and network `platform`. Its exit code is the run's success. Touches no app container
-// or app Variable.
-async function migrate(stackId: string, image: string): Promise<Outcome> {
+// Runs `service`, a migrator from `image`, in a one-shot container, on the Komodo host and network
+// `platform`. Its exit code is the run's success. Touches no app container or app Variable.
+async function migrate(stackId: string, image: string, service: string): Promise<Outcome> {
   await set(migrateImage, image);
-  const request = { stack, service: "migrate", no_tty: true, no_deps: true, pull: true };
+  const request = { stack, service, no_tty: true, no_deps: true, pull: true };
   return run(stackId, "RunStackService", () => komodo.execute("RunStackService", request), MIGRATE_SECONDS);
 }
 
@@ -259,20 +284,21 @@ if (!stackId) throw new Error(`${stack} has no id`);
 // deploy.yml already runs one deploy per app at a time: this catches a deploy started from the Komodo UI.
 if (await retry("GetStackActionState", deploying)) throw new Error(`${stack} is already deploying`);
 
-// Every deploy of a backend, `previous` included: an older edb-migrate skips migrations it does not
-// know, and still checks the checksums of those it does.
-if (MIGRATES.includes(app)) {
-  const migrated = await migrate(stackId, image);
+// Every deploy of a backend, `previous` included: an older migrator skips migrations it does not
+// know, and still checks the checksums of those it does. A later service failing leaves the earlier
+// ones' migrations applied: harmless, as migrations stay backward compatible.
+for (const service of MIGRATES[app] ?? []) {
+  const migrated = await migrate(stackId, image, service);
   if (migrated !== "success") {
     throw new Error(
       {
-        failed: `Migrations from ${image} failed: not deployed, ${stack} unchanged. Fix the migration, then deploy again.`,
-        "not-started": `Migrations from ${image} never started: not deployed, ${stack} unchanged.`,
-        unknown: `No result for the migrations from ${image}: not deployed. Check ${stack} in Komodo before deploying again.`,
+        failed: `${service} from ${image} failed: not deployed, ${stack} unchanged. Fix the migration, then deploy again.`,
+        "not-started": `${service} from ${image} never started: not deployed, ${stack} unchanged.`,
+        unknown: `No result for ${service} from ${image}: not deployed. Check ${stack} in Komodo before deploying again.`,
       }[migrated],
     );
   }
-  console.log(`eDb migrated from ${image}`);
+  console.log(`${service} ran from ${image}`);
 }
 
 const restore = vars.get(healthy) || undefined;
