@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.0](https://github.com/freeCodeCamp/exam-platform/compare/web-app-v0.2.0...web-app-v0.3.0) (2026-11-04)
+
+
+### Features
+
+* **eDb:** mDb but not ([#26](https://github.com/freeCodeCamp/exam-platform/issues/26)) ([190be63](https://github.com/freeCodeCamp/exam-platform/commit/190be632d0f9655a44df62061c1651a1110399be))
+
 ## [0.2.0](https://github.com/freeCodeCamp/exam-platform/compare/web-app-v0.1.0...web-app-v0.2.0) (2026-10-21)
 
 
