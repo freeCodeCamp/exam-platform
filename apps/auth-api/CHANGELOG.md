@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.0](https://github.com/freeCodeCamp/exam-platform/compare/auth-api-v0.1.0...auth-api-v0.2.0) (2026-11-04)
+
+
+### Features
+
+* **cDb:** init dolt with sdk ([#35](https://github.com/freeCodeCamp/exam-platform/issues/35)) ([1ca386c](https://github.com/freeCodeCamp/exam-platform/commit/1ca386c4cba3b971a759a5e907307878812c6e86))
+
 ## 0.1.0 (2026-10-29)
 
 

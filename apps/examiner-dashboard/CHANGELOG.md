@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.4.0](https://github.com/freeCodeCamp/exam-platform/compare/examiner-dashboard-v0.3.0...examiner-dashboard-v0.4.0) (2026-11-04)
+
+
+### Features
+
+* **cDb:** init dolt with sdk ([#35](https://github.com/freeCodeCamp/exam-platform/issues/35)) ([1ca386c](https://github.com/freeCodeCamp/exam-platform/commit/1ca386c4cba3b971a759a5e907307878812c6e86))
+* **eDd:** add vitest ([#25](https://github.com/freeCodeCamp/exam-platform/issues/25)) ([5e86377](https://github.com/freeCodeCamp/exam-platform/commit/5e86377c4c9ea6aeb0360f73540f6cca61fb2db3))
+
 ## [0.3.0](https://github.com/freeCodeCamp/exam-platform/compare/examiner-dashboard-v0.2.0...examiner-dashboard-v0.3.0) (2026-10-29)
 
 
