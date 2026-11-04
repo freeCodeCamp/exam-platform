@@ -10,5 +10,6 @@
 book
 docs
 databases/*
+!databases/curriculum
 !databases/examiner
 apps/desktop-app/backend

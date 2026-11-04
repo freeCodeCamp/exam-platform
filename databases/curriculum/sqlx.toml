@@ -1,0 +1,6 @@
+[common]
+database-url-var = "CDB_MIGRATOR_URL"
+
+[migrate]
+# Versioned (not in `dolt_ignore`), so it stays with each migration's Dolt commit and with merges into stg/prd.
+table-name = "_sqlx_migrations"

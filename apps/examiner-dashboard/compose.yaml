@@ -34,6 +34,15 @@ services:
     environment:
       EDB_MIGRATOR_URL: ${EDB_MIGRATOR_URL:-}
     networks: [platform]
+  # One-shot: applies cDb migrations to branch `dev`.
+  migrate-cdb:
+    image: ${MIGRATE_IMAGE:-}
+    profiles: [migrate]
+    entrypoint: [cdb-migrate]
+    restart: "no"
+    environment:
+      CDB_MIGRATOR_URL: ${CDB_MIGRATOR_URL:-}
+    networks: [platform]
 networks:
   platform:
     name: ${PLATFORM_NETWORK:-platform}

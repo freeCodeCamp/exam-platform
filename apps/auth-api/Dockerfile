@@ -8,6 +8,7 @@ COPY apps/auth-api apps/auth-api
 COPY apps/examiner-dashboard/Cargo.toml apps/examiner-dashboard/
 COPY apps/examiner-dashboard/server apps/examiner-dashboard/server
 COPY libs libs
+COPY databases/curriculum databases/curriculum
 COPY databases/examiner databases/examiner
 ENV SQLX_OFFLINE=true
 RUN --mount=type=cache,target=/usr/local/cargo/registry \
