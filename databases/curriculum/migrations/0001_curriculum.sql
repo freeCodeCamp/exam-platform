@@ -37,15 +37,12 @@ CREATE TABLE questions (
   CONSTRAINT question_archived_boolean CHECK (archived IN (0, 1))
 );
 
--- Per-branch selection of the immutable commit each exam is served from. The snapshot may
--- precede the branch tip, and must stay an ancestor of it. No FK: the exam may exist only in
--- the snapshot. `translated_from_commit` is the source-branch commit a translation follows.
+-- Per-branch selection of the immutable commit each exam is served from. The snapshot may precede
+-- the branch tip, and must stay an ancestor of it. No FK: the exam may exist only in the snapshot.
 CREATE TABLE manifest (
   exam_id VARCHAR(36) PRIMARY KEY,
   snapshot_commit CHAR(32) NOT NULL,
-  translated_from_commit CHAR(32),
   deprecated BOOLEAN NOT NULL DEFAULT FALSE,
   CONSTRAINT manifest_snapshot_hash CHECK (CHAR_LENGTH(snapshot_commit) = 32),
-  CONSTRAINT manifest_translated_hash CHECK (translated_from_commit IS NULL OR CHAR_LENGTH(translated_from_commit) = 32),
   CONSTRAINT manifest_deprecated_boolean CHECK (deprecated IN (0, 1))
 );
