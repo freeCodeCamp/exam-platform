@@ -6,7 +6,7 @@
     "jsx": "react-jsx",
     "jsxImportSource": "react",
     "noUncheckedIndexedAccess": true,
-    "types": ["bun"],
+    "types": ["bun", "@testing-library/jest-dom/vitest"],
     "paths": {
       "@/*": ["./client/src/*"]
     }
