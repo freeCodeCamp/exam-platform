@@ -2,6 +2,7 @@
 mod app;
 mod config;
 mod error;
+mod extractor;
 mod routes;
 
 use runtime::{Exit, ServerConfig};

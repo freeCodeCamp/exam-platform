@@ -9,24 +9,42 @@ use axum_extra::extract::{
 use edb::NewUser;
 use http::StatusCode;
 use oauth2::{
-    AccessToken, AuthorizationCode, CsrfToken, EmptyExtraTokenFields, EndpointNotSet, EndpointSet,
-    HttpRequest, HttpResponse, PkceCodeChallenge, PkceCodeVerifier, Scope, StandardTokenResponse,
-    TokenResponse,
+    AccessToken, AuthUrl, AuthorizationCode, ClientId, ClientSecret, CsrfToken,
+    EmptyExtraTokenFields, EndpointNotSet, EndpointSet, HttpRequest, HttpResponse,
+    PkceCodeChallenge, PkceCodeVerifier, RedirectUrl, Scope, StandardTokenResponse, TokenResponse,
+    TokenUrl,
     basic::{BasicClient, BasicTokenType},
 };
 use reqwest::Client;
 use runtime::sentry;
-use tracing::{info, warn};
-use url::Url;
+use tracing::{error, info, warn};
+use url::{Url, form_urlencoded};
 
 use super::{ALLOWED_EMAIL_DOMAIN, SESSION_TTL, create_session, is_allowed_email};
 use crate::{
-    config::{PENDING_LOGIN_TTL, ServerState},
+    config::{AppConfig, PENDING_LOGIN_TTL, ServerState},
     error::Error,
 };
 
 pub type GoogleClient =
     BasicClient<EndpointSet, EndpointNotSet, EndpointNotSet, EndpointNotSet, EndpointSet>;
+
+pub fn google_client(config: &AppConfig) -> GoogleClient {
+    BasicClient::new(ClientId::new(config.google_oauth_id.clone()))
+        .set_client_secret(ClientSecret::new(config.google_oauth_secret.clone()))
+        .set_auth_uri(
+            AuthUrl::new("https://accounts.google.com/o/oauth2/v2/auth".to_string())
+                .expect("Unreachable. static URL"),
+        )
+        .set_token_uri(
+            TokenUrl::new("https://oauth2.googleapis.com/token".to_string())
+                .expect("Unreachable. static URL"),
+        )
+        .set_redirect_uri(
+            RedirectUrl::new(config.google_redirect_url.clone())
+                .expect("Unreachable. GOOGLE_REDIRECT_URL validated in config"),
+        )
+}
 
 /// Ties the callback to the browser that started the login (login CSRF).
 const STATE_COOKIE: &str = "google_oauth_state";
@@ -81,8 +99,50 @@ pub async fn get_login(
 
 #[derive(Debug, serde::Deserialize)]
 pub struct AuthCallbackQueryParams {
-    code: AuthorizationCode,
-    state: String,
+    code: Option<AuthorizationCode>,
+    state: Option<String>,
+    /// e.g. `access_denied` when the user cancels the consent screen.
+    error: Option<String>,
+}
+
+#[derive(thiserror::Error, Debug)]
+enum LoginError {
+    #[error("google returned error: {0}")]
+    Google(String),
+    #[error("{0}")]
+    InvalidState(&'static str),
+    #[error("no verified email associated with Google account")]
+    UnverifiedEmail,
+    #[error("only @{ALLOWED_EMAIL_DOMAIN} addresses may log in")]
+    ForbiddenDomain,
+    #[error(transparent)]
+    Server(#[from] Error),
+}
+
+impl From<sqlx::Error> for LoginError {
+    fn from(error: sqlx::Error) -> Self {
+        Self::Server(error.into())
+    }
+}
+
+impl LoginError {
+    /// The `error` query param of `/login`, which maps it to a message. Code is fixed so a crafted link cannot put arbitrary text on the login page.
+    fn code(&self) -> &'static str {
+        match self {
+            Self::Google(error) if error == "access_denied" => "access_denied",
+            Self::InvalidState(_) => "invalid_state",
+            Self::UnverifiedEmail => "unverified_email",
+            Self::ForbiddenDomain => "forbidden_domain",
+            Self::Google(_) | Self::Server(_) => "login_failed",
+        }
+    }
+
+    fn login_location(&self) -> String {
+        let query: String = form_urlencoded::Serializer::new(String::new())
+            .append_pair("error", self.code())
+            .finish();
+        format!("/login?{query}")
+    }
 }
 
 /// Google's OpenID Connect userinfo claims.
@@ -102,33 +162,52 @@ pub async fn get_callback(
     jar: PrivateCookieJar,
     State(server_state): State<ServerState>,
     Query(params): Query<AuthCallbackQueryParams>,
-) -> Result<impl IntoResponse, Error> {
-    let AuthCallbackQueryParams { code, state } = params;
+) -> (PrivateCookieJar, Redirect) {
+    let cookie_state = jar
+        .get(STATE_COOKIE)
+        .map(|cookie| cookie.value().to_owned());
+    let jar = jar.remove(Cookie::build(STATE_COOKIE).path(STATE_COOKIE_PATH));
+
+    match login(&server_state, jar.clone(), cookie_state, params).await {
+        Ok(jar) => (jar, Redirect::to("/")),
+        Err(login_error) => {
+            if let LoginError::Google(_) | LoginError::Server(_) = login_error {
+                error!(error = %login_error, "google login failed");
+            }
+            (jar, Redirect::to(&login_error.login_location()))
+        }
+    }
+}
+
+async fn login(
+    server_state: &ServerState,
+    jar: PrivateCookieJar,
+    cookie_state: Option<String>,
+    params: AuthCallbackQueryParams,
+) -> Result<PrivateCookieJar, LoginError> {
     let mock_auth = server_state.config.mock_auth;
+
+    if let Some(google_error) = params.error {
+        warn!({ google_error }, "google callback returned an error");
+        return Err(LoginError::Google(google_error));
+    }
+    let (Some(code), Some(state)) = (params.code, params.state) else {
+        return Err(LoginError::InvalidState("missing oauth code or state"));
+    };
 
     let pkce_code_verifier = if mock_auth {
         PkceCodeVerifier::new("mock".to_string())
     } else {
         // State must match this browser's cookie, and a login in flight on this server.
-        let cookie_state = jar
-            .get(STATE_COOKIE)
-            .map(|cookie| cookie.value().to_owned());
         if cookie_state.as_deref() != Some(state.as_str()) {
             warn!("google callback state does not match cookie");
-            return Err(Error::Server(
-                StatusCode::UNAUTHORIZED,
-                "invalid oauth state".to_string(),
-            ));
+            return Err(LoginError::InvalidState("invalid oauth state"));
         }
         server_state
             .pending_logins
             .take(&state)
-            .ok_or(Error::Server(
-                StatusCode::UNAUTHORIZED,
-                "unknown or expired oauth state".to_string(),
-            ))?
+            .ok_or(LoginError::InvalidState("unknown or expired oauth state"))?
     };
-    let jar = jar.remove(Cookie::build(STATE_COOKIE).path(STATE_COOKIE_PATH));
 
     let token = get_access_token(
         code,
@@ -148,12 +227,7 @@ pub async fn get_callback(
 
     let email = match google_user_info.email {
         Some(email) if google_user_info.email_verified => email,
-        _ => {
-            return Err(Error::Server(
-                StatusCode::UNAUTHORIZED,
-                "no verified email associated with Google account".to_string(),
-            ));
-        }
+        _ => return Err(LoginError::UnverifiedEmail),
     };
 
     // `hd` proves the account is managed by the freeCodeCamp Workspace, not just a matching address.
@@ -166,10 +240,7 @@ pub async fn get_callback(
         sentry::metrics::counter("auth.login", 1)
             .attribute("outcome", "forbidden")
             .capture();
-        return Err(Error::Server(
-            StatusCode::FORBIDDEN,
-            format!("only @{ALLOWED_EMAIL_DOMAIN} addresses may log in"),
-        ));
+        return Err(LoginError::ForbiddenDomain);
     }
 
     let user = match server_state.database.find_user_by_email(&email).await? {
@@ -199,13 +270,13 @@ pub async fn get_callback(
     };
 
     let expires_in = token.expires_in().unwrap_or(SESSION_TTL);
-    let jar = create_session(&server_state, jar, &user, expires_in).await?;
+    let jar = create_session(server_state, jar, &user, expires_in).await?;
 
     sentry::metrics::counter("auth.login", 1)
         .attribute("outcome", "success")
         .capture();
 
-    Ok((jar, Redirect::to("/")))
+    Ok(jar)
 }
 
 async fn get_google_user_info(
@@ -278,4 +349,39 @@ async fn send_oauth_request(
     *http_response.body_mut() = response.bytes().await?.to_vec();
 
     Ok(http_response)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn cancelled_consent_is_access_denied() {
+        let login_error = LoginError::Google("access_denied".to_string());
+
+        assert_eq!(login_error.login_location(), "/login?error=access_denied");
+    }
+
+    #[test]
+    fn rejections_keep_their_code() {
+        assert_eq!(
+            LoginError::InvalidState("invalid oauth state").code(),
+            "invalid_state"
+        );
+        assert_eq!(LoginError::UnverifiedEmail.code(), "unverified_email");
+        assert_eq!(LoginError::ForbiddenDomain.code(), "forbidden_domain");
+    }
+
+    /// Server failures and unexpected Google errors share a generic code: their details stay in logs.
+    #[test]
+    fn failures_hide_details() {
+        let google = LoginError::Google("invalid_client".to_string());
+        let server = LoginError::Server(Error::Server(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            "token exchange failed".to_string(),
+        ));
+
+        assert_eq!(google.code(), "login_failed");
+        assert_eq!(server.login_location(), "/login?error=login_failed");
+    }
 }

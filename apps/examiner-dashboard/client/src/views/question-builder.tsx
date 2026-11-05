@@ -22,6 +22,7 @@ import type { CollectionEntry } from "astro:content";
 
 import { AppRoot } from "@/components/app-root";
 import { PageShell } from "@/components/page-shell";
+import { ProtectedRoute } from "@/components/protected-route";
 import { Draggable } from "@/components/ui/draggable";
 import { Droppable } from "@/components/ui/droppable";
 import { MultipleChoice } from "@/components/questions/multiple-choice";
@@ -391,54 +392,56 @@ export function QuestionBuilder() {
 
   return (
     <AppRoot>
-      <PageShell title="Question Builder" description="Author exams." path="/question-builder">
-        <DragDropProvider
-          onDragEnd={(event) => {
-            // e.g. if the user presses Escape
-            if (event.canceled) return;
-            // if the user drops somewhere other than the preview
-            if (!event.operation.target) return;
+      <ProtectedRoute>
+        <PageShell title="Question Builder" description="Author exams." path="/question-builder">
+          <DragDropProvider
+            onDragEnd={(event) => {
+              // e.g. if the user presses Escape
+              if (event.canceled) return;
+              // if the user drops somewhere other than the preview
+              if (!event.operation.target) return;
 
-            const { source } = event.operation;
-            const kind = source?.id;
+              const { source } = event.operation;
+              const kind = source?.id;
 
-            if (!isKind(kind)) throw Error("invalid element type: " + kind);
+              if (!isKind(kind)) throw Error("invalid element type: " + kind);
 
-            createElement(kind);
-          }}
-        >
-          <Flex h="full">
-            <Droppable
-              id="droppable"
-              flex="1"
-              minW="0"
-              p="8"
-              overflow="auto"
-              bg="bg.muted"
-              transition="background 0.15s"
-              css={{ "&[data-drop-target]": { bg: "colorPalette.subtle" } }}
-            >
-              <Box
-                mx="auto"
+              createElement(kind);
+            }}
+          >
+            <Flex h="full">
+              <Droppable
+                id="droppable"
+                flex="1"
+                minW="0"
                 p="8"
-                bg="bg"
-                shadow="sm"
-                borderWidth="1px"
-                css={{
-                  "[data-drop-target] &": { borderColor: "colorPalette.solid" },
-                }}
+                overflow="auto"
+                bg="bg.muted"
+                transition="background 0.15s"
+                css={{ "&[data-drop-target]": { bg: "colorPalette.subtle" } }}
               >
-                <Preview elements={elements} />
-              </Box>
-            </Droppable>
-            <SideBar
-              deleteElement={deleteElement}
-              elements={elements}
-              updateElement={updateElement}
-            />
-          </Flex>
-        </DragDropProvider>
-      </PageShell>
+                <Box
+                  mx="auto"
+                  p="8"
+                  bg="bg"
+                  shadow="sm"
+                  borderWidth="1px"
+                  css={{
+                    "[data-drop-target] &": { borderColor: "colorPalette.solid" },
+                  }}
+                >
+                  <Preview elements={elements} />
+                </Box>
+              </Droppable>
+              <SideBar
+                deleteElement={deleteElement}
+                elements={elements}
+                updateElement={updateElement}
+              />
+            </Flex>
+          </DragDropProvider>
+        </PageShell>
+      </ProtectedRoute>
     </AppRoot>
   );
 }
