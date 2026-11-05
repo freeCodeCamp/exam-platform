@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.0](https://github.com/freeCodeCamp/exam-platform/compare/examiner-dashboard-v0.4.0...examiner-dashboard-v0.5.0) (2026-11-05)
+
+
+### Features
+
+* **eDd:** add login with pages protected ([#36](https://github.com/freeCodeCamp/exam-platform/issues/36)) ([a101601](https://github.com/freeCodeCamp/exam-platform/commit/a101601a96fa838875787a8b2f68dba0603d68a6))
+
 ## [0.4.0](https://github.com/freeCodeCamp/exam-platform/compare/examiner-dashboard-v0.3.0...examiner-dashboard-v0.4.0) (2026-11-04)
 
 
