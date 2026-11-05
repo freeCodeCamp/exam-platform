@@ -1,12 +1,12 @@
 {
   "extends": "astro/tsconfigs/strict",
-  "include": [".astro/types.d.ts", "astro.config.ts", "client/**/*"],
+  "include": [".astro/types.d.ts", "astro.config.ts", "vitest-setup.ts", "client/**/*"],
   "exclude": ["dist"],
   "compilerOptions": {
     "jsx": "react-jsx",
     "jsxImportSource": "react",
     "noUncheckedIndexedAccess": true,
-    "types": ["bun"],
+    "types": ["bun", "@testing-library/jest-dom/vitest"],
     "paths": {
       "@/*": ["./client/src/*"]
     }

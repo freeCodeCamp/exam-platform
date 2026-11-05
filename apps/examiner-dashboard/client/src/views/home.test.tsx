@@ -1,11 +1,41 @@
 /* @vitest-environment jsdom */
-import { render } from "@testing-library/react";
-import { expect, test } from "vitest";
+import { cleanup, render } from "@testing-library/react";
+import { afterEach, expect, test, vi } from "vitest";
 
+import { redirect } from "@/utils/navigate";
+import { camperbot, mockFetchResponse, mockSession } from "../../test-utils/session";
 import { Home } from "./home.tsx";
 
-test("trivial view test. Delete after creating real ones", () => {
+vi.mock("@/utils/navigate");
+
+afterEach(() => {
+  cleanup();
+  vi.clearAllMocks();
+  vi.unstubAllGlobals();
+});
+
+test("shows the dashboard to logged in users", async () => {
+  mockSession(camperbot);
+
   const screen = render(<Home />);
 
-  expect(screen.getByText(/Author/)).toBeDefined();
+  expect(await screen.findByText(/Author/)).toBeInTheDocument();
+});
+
+test("sends logged out users to /login", async () => {
+  mockSession(null);
+
+  const screen = render(<Home />);
+
+  await vi.waitFor(() => expect(redirect).toHaveBeenCalledWith("/login"));
+  expect(screen.queryByText(/Author/)).not.toBeInTheDocument();
+});
+
+test("sends forbidden users to /login", async () => {
+  mockFetchResponse(() => new Response("only @freecodecamp.org", { status: 403 }));
+
+  const screen = render(<Home />);
+
+  await vi.waitFor(() => expect(redirect).toHaveBeenCalledWith("/login"));
+  expect(screen.queryByText(/Author/)).not.toBeInTheDocument();
 });

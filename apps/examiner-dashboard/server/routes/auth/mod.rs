@@ -3,6 +3,7 @@ use std::time::Duration;
 use axum::{
     Json, Router,
     extract::State,
+    http::header::{CACHE_CONTROL, HeaderValue},
     response::{IntoResponse, Redirect},
     routing::{delete, get, post},
 };
@@ -13,22 +14,23 @@ use axum_extra::extract::{
 use edb::{NewUser, Session, User};
 use http::StatusCode;
 use oauth2::CsrfToken;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use time::OffsetDateTime;
 use tracing::{instrument, warn};
 
-use crate::{config::ServerState, error::Error};
+use crate::{config::ServerState, error::Error, extractor::AuthUser};
 
 pub mod google;
 
 pub const ALLOWED_EMAIL_DOMAIN: &str = "freecodecamp.org";
 const SESSION_TTL: Duration = Duration::from_secs(60 * 60);
-const SESSION_COOKIE: &str = "sid";
+pub const SESSION_COOKIE: &str = "sid";
 
 pub fn router(mock_auth: bool) -> Router<ServerState> {
     let router = Router::new()
         .route("/google/login", get(google::get_login))
         .route("/google/callback", get(google::get_callback))
+        .route("/session", get(get_session))
         .route("/logout", delete(delete_logout));
 
     if mock_auth {
@@ -71,26 +73,35 @@ async fn create_session(
     Ok(jar.add(cookie))
 }
 
+/// Profile of the logged-in user, for the client.
+#[derive(Debug, Serialize)]
+pub struct SessionUser {
+    pub name: String,
+    pub email: String,
+    pub picture: Option<String>,
+}
+
+/// The logged-in user. 401/403 per [`AuthUser`].
+#[instrument(skip_all, level = "debug")]
+pub async fn get_session(AuthUser(user): AuthUser) -> impl IntoResponse {
+    (
+        [(CACHE_CONTROL, HeaderValue::from_static("no-store"))],
+        Json(SessionUser {
+            name: user.name,
+            email: user.email,
+            picture: user.picture,
+        }),
+    )
+}
+
 /// Logs the user out by deleting the db session(s), and unsetting the sid
 #[instrument(skip_all, err(Debug), level = "debug")]
 pub async fn delete_logout(
+    AuthUser(user): AuthUser,
     jar: PrivateCookieJar,
     State(server_state): State<ServerState>,
 ) -> Result<PrivateCookieJar, Error> {
-    let session_id = jar
-        .get(SESSION_COOKIE)
-        .map(|cookie| cookie.value().to_owned())
-        .ok_or(Error::Server(
-            StatusCode::UNAUTHORIZED,
-            "invalid sid in cookie jar".to_string(),
-        ))?;
-
-    if let Some(session) = server_state.database.find_session(&session_id).await? {
-        server_state
-            .database
-            .delete_user_sessions(session.user_id)
-            .await?;
-    }
+    server_state.database.delete_user_sessions(user.id).await?;
 
     Ok(jar.remove(Cookie::build(SESSION_COOKIE).path("/")))
 }

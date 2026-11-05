@@ -32,6 +32,16 @@ impl Database {
         .await
     }
 
+    pub async fn find_user_by_id(&self, user_id: Uuid) -> Result<Option<User>, sqlx::Error> {
+        sqlx::query_as!(
+            User,
+            "SELECT id, name, email, google_id, picture FROM edd.users WHERE id = $1",
+            user_id
+        )
+        .fetch_optional(&self.pool)
+        .await
+    }
+
     /// Inserts `user`, returning it with its new id.
     pub async fn insert_user(&self, user: NewUser) -> Result<User, sqlx::Error> {
         sqlx::query_as!(
@@ -92,6 +102,20 @@ mod tests {
         let found = db.find_user_by_email("camper@FREECODECAMP.org").await?;
 
         assert_eq!(found.map(|u| u.id), Some(user.id));
+        Ok(())
+    }
+
+    #[sqlx::test(migrations = false)]
+    async fn finds_user_by_id(pool: PgPool) -> sqlx::Result<()> {
+        setup(&pool).await?;
+        let db = database_as(&pool, Role::Edd).await?;
+        let user = db.insert_user(new_user("camper@freecodecamp.org")).await?;
+
+        let found = db.find_user_by_id(user.id).await?;
+        let missing = db.find_user_by_id(Uuid::nil()).await?;
+
+        assert_eq!(found.map(|u| u.email), Some(user.email));
+        assert!(missing.is_none());
         Ok(())
     }
 
