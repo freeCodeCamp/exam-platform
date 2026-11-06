@@ -1,0 +1,116 @@
+{
+  "db_name": "MySQL",
+  "query": "SELECT sha256, object_key, content_type, byte_size, file_name, created_at\n            FROM assets ORDER BY created_at DESC, sha256",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "sha256",
+        "type_info": {
+          "type": "String",
+          "flags": "NOT_NULL",
+          "collation": 255,
+          "max_size": 256
+        },
+        "origin": {
+          "Table": {
+            "table": "curriculum.assets",
+            "name": "sha256"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "object_key",
+        "type_info": {
+          "type": "VarString",
+          "flags": "NOT_NULL",
+          "collation": 255,
+          "max_size": 1020
+        },
+        "origin": {
+          "Table": {
+            "table": "curriculum.assets",
+            "name": "object_key"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "content_type",
+        "type_info": {
+          "type": "VarString",
+          "flags": "NOT_NULL",
+          "collation": 255,
+          "max_size": 508
+        },
+        "origin": {
+          "Table": {
+            "table": "curriculum.assets",
+            "name": "content_type"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "byte_size",
+        "type_info": {
+          "type": "Long",
+          "flags": "NOT_NULL",
+          "collation": 255,
+          "max_size": 11
+        },
+        "origin": {
+          "Table": {
+            "table": "curriculum.assets",
+            "name": "byte_size"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "file_name",
+        "type_info": {
+          "type": "VarString",
+          "flags": "NOT_NULL",
+          "collation": 255,
+          "max_size": 1020
+        },
+        "origin": {
+          "Table": {
+            "table": "curriculum.assets",
+            "name": "file_name"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "created_at",
+        "type_info": {
+          "type": "Datetime",
+          "flags": "NOT_NULL",
+          "collation": 255,
+          "max_size": 26
+        },
+        "origin": {
+          "Table": {
+            "table": "curriculum.assets",
+            "name": "created_at"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "5d21607ba073eb9b04556fc282d6189bb324d2e48e8b710598969f7928d9838b"
+}

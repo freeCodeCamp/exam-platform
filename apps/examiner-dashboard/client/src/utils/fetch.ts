@@ -66,3 +66,50 @@ export async function postDevLogin(user: { name: string; email: string }): Promi
     throw await responseError(res);
   }
 }
+
+// Mirrors the server's limits (server/routes/files.rs), so the dropzone rejects what it would.
+export const MAX_FILE_BYTES = 10 * 1024 * 1024;
+export const MAX_FILES_PER_UPLOAD = 5;
+// The server sniffs the bytes and rejects anything else: this only filters the file picker.
+export const ACCEPTED_TYPES = [
+  "image/png",
+  "image/jpeg",
+  "image/gif",
+  "image/webp",
+  "audio/mpeg",
+  "audio/wav",
+  "audio/ogg",
+  "audio/flac",
+  "audio/mp4",
+];
+
+export interface StoredFile {
+  // What a question's `question_assets` row stores.
+  sha256: string;
+  // Object key, `sha256/<sha256>.<ext>`.
+  key: string;
+  // Sniffed by the server from the bytes.
+  contentType: string;
+  size: number;
+  // As first uploaded.
+  fileName: string;
+  // RFC 3339. `null` in an upload's response.
+  createdAt: string | null;
+  // Presigned, expires in minutes. Display only: never store it.
+  url: string;
+}
+
+export async function getFiles(): Promise<StoredFile[]> {
+  const res = await authorizedFetch("/api/files");
+  return (await res.json()) as StoredFile[];
+}
+
+export async function uploadFiles(files: File[]): Promise<StoredFile[]> {
+  const body = new FormData();
+  for (const file of files) {
+    body.append("file", file);
+  }
+
+  const res = await authorizedFetch("/api/files", { method: "POST", body });
+  return (await res.json()) as StoredFile[];
+}

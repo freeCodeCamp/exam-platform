@@ -2,6 +2,7 @@ use axum::http::header::{CACHE_CONTROL, HeaderValue};
 use axum::response::IntoResponse;
 
 pub mod auth;
+pub mod files;
 pub mod status;
 
 /// Liveness probe for Docker and the platform runner.

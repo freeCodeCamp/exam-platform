@@ -1,15 +1,18 @@
 //! cDb: versioned curriculum content. Dolt.
-use std::{collections::HashMap, time::Duration};
+use std::{collections::HashMap, str::FromStr, time::Duration};
 
 use sqlx::{
-    Connection, MySqlConnection, MySqlPool, Row,
+    Connection, MySql, MySqlConnection, MySqlPool, Row,
     migrate::{Migrate, MigrateError, Migrator},
-    mysql::MySqlPoolOptions,
+    mysql::{MySqlConnectOptions, MySqlPoolOptions},
+    pool::PoolConnection,
 };
 
 mod aapi;
 mod edd;
 mod shared;
+
+pub use edd::{Asset, NewAsset};
 
 /// The only branch migrations reach directly.
 pub const DEV: &str = "dev";
@@ -221,29 +224,61 @@ pub(crate) async fn drop_scratch(conn: &mut MySqlConnection) -> Result<(), Error
 
 #[derive(Debug, Clone)]
 pub struct Database {
-    #[expect(dead_code, reason = "no queries yet")]
     pool: MySqlPool,
+    /// The database `url` names, e.g. `curriculum`. Branches are `<name>/<branch>`.
+    name: String,
 }
 
 impl Database {
-    /// Connects to cDb.
+    /// Connects to cDb. `url` names a database, never a `db/branch` revision.
     ///
     /// Never migrates. `cdb-migrate` should have already run. A `dolt_checkout` stays on its pooled
-    /// connection for the next borrower, and `ROLLBACK` does not undo it: start every transaction with
-    /// `` USE `curriculum/<branch>` ``, or give each branch a pool that runs that `USE` in
-    /// `after_connect` and never calls `dolt_checkout`.
+    /// connection for the next borrower, and `ROLLBACK` does not undo it: every method starts with
+    /// [`Database::on_branch`], and none calls `dolt_checkout`.
     pub async fn connect(url: &str) -> Result<Self, sqlx::Error> {
+        Self::connect_with(MySqlConnectOptions::from_str(url)?).await
+    }
+
+    /// Connects on first query. For tests whose requests never reach cDb.
+    pub fn connect_lazy(url: &str) -> Result<Self, sqlx::Error> {
+        let options = MySqlConnectOptions::from_str(url)?;
+        let name = Self::name(&options)?;
+        let pool = MySqlPoolOptions::new().connect_lazy_with(options);
+        Ok(Self { pool, name })
+    }
+
+    fn name(options: &MySqlConnectOptions) -> Result<String, sqlx::Error> {
+        options
+            .get_database()
+            .filter(|name| !name.is_empty() && !name.contains(['/', '`']))
+            .map(str::to_owned)
+            .ok_or_else(|| sqlx::Error::Configuration("cDb URL must name a database".into()))
+    }
+
+    /// [`Database::connect`], from parsed options.
+    pub async fn connect_with(options: MySqlConnectOptions) -> Result<Self, sqlx::Error> {
+        let name = Self::name(&options)?;
         let pool = MySqlPoolOptions::new()
             .max_connections(10)
             .acquire_timeout(Duration::from_secs(5))
-            .connect(url)
+            .connect_with(options)
             .await?;
 
-        Ok(Self { pool })
+        Ok(Self { pool, name })
     }
 
-    pub fn from_pool(pool: MySqlPool) -> Self {
-        Self { pool }
+    /// A pooled connection, switched to `branch` with `USE`, which reads, writes and
+    /// `dolt_commit`s there without touching checkout state.
+    pub(crate) async fn on_branch(
+        &self,
+        branch: &str,
+    ) -> Result<PoolConnection<MySql>, sqlx::Error> {
+        let mut conn = self.pool.acquire().await?;
+        // Neither part is user input: `name` is checked in `connect`, branches are constants.
+        sqlx::raw_sql(sqlx::AssertSqlSafe(format!("USE `{}/{branch}`", self.name)))
+            .execute(&mut *conn)
+            .await?;
+        Ok(conn)
     }
 }
 
@@ -302,6 +337,11 @@ pub(crate) mod testing {
 
         pub async fn connect(&self) -> sqlx::Result<MySqlConnection> {
             self.options.connect().await
+        }
+
+        /// The SDK, on this database.
+        pub async fn database(&self) -> sqlx::Result<crate::Database> {
+            crate::Database::connect_with(self.options.clone()).await
         }
 
         /// Runs `migrator` as `cdb-migrate` does, on a connection of its own.

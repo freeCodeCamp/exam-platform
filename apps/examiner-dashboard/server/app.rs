@@ -7,6 +7,7 @@ use tower_http::services::{ServeDir, ServeFile};
 
 use crate::config::{AppConfig, PendingLogins, ServerState};
 use crate::routes::{self, auth::google::google_client};
+use object_storage::ObjectStore;
 
 pub async fn app(config: &AppConfig) -> Router {
     let google_client = google_client(config);
@@ -20,6 +21,10 @@ pub async fn app(config: &AppConfig) -> Router {
         .await
         .expect("failed to connect to eDb");
 
+    let curriculum = cdb::Database::connect(&config.cdb_database_url)
+        .await
+        .expect("failed to connect to cDb");
+
     let server_state = ServerState {
         config: config.clone(),
         database,
@@ -27,10 +32,13 @@ pub async fn app(config: &AppConfig) -> Router {
         google_client,
         pending_logins: PendingLogins::default(),
         cookie_key: Key::from(config.cookie_key.as_bytes()),
+        curriculum,
+        curriculum_store: ObjectStore::new(&config.curriculum_storage),
     };
 
     let api = Router::new()
         .nest("/auth", routes::auth::router(config.mock_auth))
+        .nest("/api/files", routes::files::router())
         .with_state(server_state);
 
     let web_dir_path = PathBuf::from(&config.web_dir);

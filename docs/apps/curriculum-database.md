@@ -61,6 +61,12 @@ Table names can also be branch-qualified: `` `curriculum/prd`.exams ``. Only `cd
 
 Dolt does not support `SELECT FOR UPDATE`.
 
+## Assets
+
+The bytes of question images and audio live in the curriculum bucket, not in Dolt. `assets` holds one row per file, keyed by SHA-256, with its object key (`sha256/<sha256>.<ext>`), sniffed content type, size and original file name. `question_assets` orders a question's assets and holds their alt text. Rows carry keys, never URLs, so old snapshots keep resolving after a provider or CDN change.
+
+eDd (`CDB_DATABASE_URL`) writes `assets` on `dev` through `Database::insert_asset`. Each new file is one Dolt commit that stages only `assets` (`--skip-empty`), so other uncommitted content on `dev` stays out of it. The SDK switches branch with `USE` on every call and never calls `dolt_checkout`.
+
 ## Migrations
 
 `cdb-migrate` (`CDB_MIGRATOR_URL`) applies `migrations/` with sqlx, as `edb-migrate` does for eDb, with these differences for Dolt:

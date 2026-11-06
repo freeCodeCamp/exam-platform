@@ -31,7 +31,6 @@ apps/
 databases/
   | curriculum/
   | examiner/
-  | moderation/
 docs/ # mdbook docs
 libs/ # Common across one or more applications
   | runtime/ # env config, tracing + Sentry, Axum serving + graceful shutdown, exit codes
