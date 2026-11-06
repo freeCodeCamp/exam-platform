@@ -87,6 +87,35 @@ VS Code: install recommended extensions (`.vscode/extensions.json`). Settings ru
 
 ### Run
 
+#### Slices (Docker)
+
+`bun run dev <slice>...` builds and starts a slice and everything it depends on from `compose.dev.yaml`, waits until healthy, then follows its logs. Ctrl-C detaches; containers keep running. No network setup and no `.env` export needed.
+
+| Slice  | Starts                                                                     |
+| ------ | -------------------------------------------------------------------------- |
+| `edb`  | eDb, migrated                                                              |
+| `cdb`  | cDb, database `curriculum` created and migrated                            |
+| `s3`   | SeaweedFS on `127.0.0.1:18333`, bucket `curriculum`                        |
+| `edd`  | eDd server with built client on `127.0.0.1:13002`, plus `edb`, `cdb`, `s3` |
+| `aapi` | aAPI on `127.0.0.1:13001`, plus `edb`                                      |
+| `wapp` | wApp on `127.0.0.1:13003`, plus `aapi`                                     |
+| `all`  | Everything                                                                 |
+
+```bash
+bun run dev edd          # combine: bun run dev edd wapp
+bun run dev logs edd     # follow logs again
+bun run dev ps
+bun run dev down         # stop, keep data
+bun run dev reset        # stop, delete data volumes
+bun run dev compose ...  # any docker compose command on compose.dev.yaml
+```
+
+- **Env.** Missing `databases/*/.env` are created from `.env.example` with random passwords. Apps need no `.env`: eDd is a debug build with `MOCK_AUTH=true`, so log in through `POST /auth/dev/login` and Google needs no credentials. An app `.env`, if present, is read (e.g. real `GOOGLE_*` or `RUST_LOG`), with database, cDb and S3 URLs overridden to in-network hosts.
+- **Rebuild.** Code changes need the slice run again (`--build`; eDd builds the `dev` profile). For client HMR, run `bun run dev:client` alongside `edd`: it proxies to the container on 13002.
+- **S3.** `s3.localhost` resolves to SeaweedFS inside the network and to loopback in the browser, so presigned URLs work from both. Dev-only keys: `dev/seaweedfs-s3.json`.
+
+#### Native
+
 | App        | Command                                         | Port              |
 | ---------- | ----------------------------------------------- | ----------------- |
 | aAPI       | `cargo run -p auth-api`                         | `127.0.0.1:13001` |
@@ -97,7 +126,7 @@ VS Code: install recommended extensions (`.vscode/extensions.json`). Settings ru
 | eDb        | `docker compose up -d` in `databases/examiner/` | `127.0.0.1:15432` |
 | Docs       | `mdbook watch` (or `mdbook serve`)              | `localhost:3000`  |
 
-`cargo run` rows need their `.env` exported first ([Environment](#environment)). `bun run dev` starts wApp and eDd client together. eDd client proxies `/api` to eDd server. wApp and dApp call aAPI at `AUTH_API_URL`.
+`cargo run` rows need their `.env` exported first ([Environment](#environment)). `bun run dev:client` starts wApp and eDd client together. eDd client proxies `/api` to eDd server. wApp and dApp call aAPI at `AUTH_API_URL`.
 
 Images: `docker compose -f apps/<app>/compose.yaml up --build`. Build context is repo root.
 

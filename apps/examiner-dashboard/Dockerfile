@@ -25,11 +25,14 @@ COPY databases/curriculum databases/curriculum
 COPY databases/examiner databases/examiner
 # Checks `query!` macros against the committed .sqlx/, so the build needs no database.
 ENV SQLX_OFFLINE=true
+# `dev` for local development only (compose.dev.yaml): debug builds allow MOCK_AUTH. Never deploy one.
+ARG CARGO_PROFILE=release
 RUN --mount=type=cache,target=/usr/local/cargo/registry \
     --mount=type=cache,target=/src/target \
-    cargo build --locked --release -p examiner-dashboard -p edb -p cdb \
-    && cp target/release/server /usr/local/bin/examiner-dashboard \
-    && cp target/release/edb-migrate target/release/cdb-migrate /usr/local/bin/
+    cargo build --locked --profile "$CARGO_PROFILE" -p examiner-dashboard -p edb -p cdb \
+    && out="target/$([ "$CARGO_PROFILE" = dev ] && echo debug || echo "$CARGO_PROFILE")" \
+    && cp "$out/server" /usr/local/bin/examiner-dashboard \
+    && cp "$out/edb-migrate" "$out/cdb-migrate" /usr/local/bin/
 
 FROM debian:trixie-slim
 RUN apt-get update \

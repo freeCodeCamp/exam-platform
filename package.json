@@ -40,7 +40,8 @@
     }
   },
   "scripts": {
-    "dev": "bun --filter web-app --filter examiner-dashboard-client dev",
+    "dev": "bun dev/dev.ts",
+    "dev:client": "bun --filter web-app --filter examiner-dashboard-client dev",
     "dev:desktop": "bun --filter desktop-app tauri:dev",
     "build": "bun --filter '*' build",
     "check": "bun --filter '*' check",
