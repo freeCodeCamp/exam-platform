@@ -1,0 +1,174 @@
+# Local development: every service in one project. Run through `bun run dev <slice>` (dev/dev.ts),
+# which passes the database `.env` files for interpolation. Starting a service starts its
+# `depends_on` too: `up -d examiner-dashboard` brings up eDb, cDb, S3 and both migrations.
+# Deploys never use this file: they use each directory's compose.yaml.
+#
+# Databases extend their own compose.yaml. Apps are defined here instead: extending theirs would
+# interpolate their required (`:?`) variables for every slice. Apps read their own `.env` as
+# `env_file`, then `environment` points them at in-network hosts.
+name: exam-platform-dev
+
+x-edd-build: &edd-build
+  context: .
+  dockerfile: apps/examiner-dashboard/Dockerfile
+  # Debug build: MOCK_AUTH needs one, and it compiles faster.
+  args: { CARGO_PROFILE: dev }
+x-aapi-build: &aapi-build
+  context: .
+  dockerfile: apps/auth-api/Dockerfile
+
+services:
+  examiner-db:
+    extends: { file: databases/examiner/compose.yaml, service: examiner-db }
+
+  curriculum-db:
+    extends: { file: databases/curriculum/compose.yaml, service: curriculum-db }
+
+  # One-shot: creates database `curriculum` (on branch `dev`, server.sh) if missing.
+  curriculum-db-init:
+    extends: { file: databases/curriculum/compose.yaml, service: curriculum-db }
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - DOLT_CLI_PASSWORD="$$DOLT_ROOT_PASSWORD" exec dolt --host curriculum-db --port 3306 --user root --no-tls sql -q 'CREATE DATABASE IF NOT EXISTS curriculum'
+    restart: "no"
+    # The CLI needs a writable HOME; the server's lives on the volume this service does not mount.
+    environment:
+      HOME: /tmp
+    ports: !reset []
+    volumes: !reset []
+    healthcheck: { disable: true }
+    depends_on:
+      curriculum-db: { condition: service_healthy }
+
+  # S3-compatible curriculum bucket. `s3.localhost` resolves to this container in the network and
+  # to loopback in browsers, so presigned URLs work from both.
+  s3:
+    image: chrislusf/seaweedfs:4.52@sha256:57877e32bb90073b37dc109b438ba66e84fd5ed9ced5f5c04f56444ef243ce59
+    command: server -dir=/data -s3 -s3.port=18333 -s3.config=/etc/seaweedfs/s3.json
+    restart: unless-stopped
+    ports: ["127.0.0.1:18333:18333"]
+    volumes:
+      - s3:/data
+      - ./dev/seaweedfs-s3.json:/etc/seaweedfs/s3.json:ro
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:18333/healthz"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 10s
+    networks:
+      platform:
+        aliases: [s3.localhost]
+
+  # One-shot: creates bucket `curriculum` if missing.
+  s3-init:
+    image: chrislusf/seaweedfs:4.52@sha256:57877e32bb90073b37dc109b438ba66e84fd5ed9ced5f5c04f56444ef243ce59
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - echo 's3.bucket.list' | weed shell -master=s3:9333 | grep -qw curriculum || echo 's3.bucket.create -name curriculum' | weed shell -master=s3:9333
+    restart: "no"
+    depends_on:
+      s3: { condition: service_healthy }
+    networks: [platform]
+
+  migrate-edb:
+    build: *edd-build
+    image: exam-platform-dev/examiner-dashboard
+    entrypoint: [edb-migrate]
+    restart: "no"
+    environment:
+      EDB_MIGRATOR_URL: postgres://edb_migrator:${EDB_MIGRATOR_PASSWORD}@examiner-db:5432/examiner
+    depends_on:
+      examiner-db: { condition: service_healthy }
+    networks: [platform]
+
+  # Same migrations from aAPI's image, so the auth slice never builds eDd.
+  migrate-edb-aapi:
+    extends: migrate-edb
+    build: *aapi-build
+    image: exam-platform-dev/auth-api
+
+  migrate-cdb:
+    build: *edd-build
+    image: exam-platform-dev/examiner-dashboard
+    entrypoint: [cdb-migrate]
+    restart: "no"
+    environment:
+      CDB_MIGRATOR_URL: mysql://root:${CDB_ROOT_PASSWORD}@curriculum-db:3306/curriculum
+    depends_on:
+      curriculum-db-init: { condition: service_completed_successfully }
+    networks: [platform]
+
+  examiner-dashboard:
+    build: *edd-build
+    image: exam-platform-dev/examiner-dashboard
+    restart: unless-stopped
+    ports: ["127.0.0.1:13002:13002"]
+    # Optional: RUST_LOG, SENTRY_*, and real GOOGLE_* to test Google login. Unset GOOGLE_* and
+    # COOKIE_KEY fall back to MOCK_AUTH defaults.
+    env_file:
+      - path: apps/examiner-dashboard/.env
+        required: false
+    environment:
+      ENVIRONMENT: development
+      # Mounts POST /auth/dev/login.
+      MOCK_AUTH: "true"
+      LISTEN_ADDR: 0.0.0.0:13002
+      WEB_DIR: /app/web
+      EDB_DATABASE_URL: postgres://edd:${EDB_EDD_PASSWORD}@examiner-db:5432/examiner
+      CDB_DATABASE_URL: mysql://root:${CDB_ROOT_PASSWORD}@curriculum-db:3306/curriculum
+      CURRICULUM_S3_ENDPOINT: http://s3.localhost:18333
+      CURRICULUM_S3_REGION: us-east-1
+      CURRICULUM_S3_BUCKET: curriculum
+      CURRICULUM_S3_ACCESS_KEY_ID: dev
+      CURRICULUM_S3_SECRET_ACCESS_KEY: dev-secret-key
+      CURRICULUM_S3_FORCE_PATH_STYLE: "true"
+    depends_on:
+      migrate-edb: { condition: service_completed_successfully }
+      migrate-cdb: { condition: service_completed_successfully }
+      s3-init: { condition: service_completed_successfully }
+    networks:
+      platform:
+        aliases: [examiner-dashboard]
+
+  auth-api:
+    build: *aapi-build
+    image: exam-platform-dev/auth-api
+    restart: unless-stopped
+    ports: ["127.0.0.1:13001:13001"]
+    env_file:
+      - path: apps/auth-api/.env
+        required: false
+    environment:
+      ENVIRONMENT: development
+      LISTEN_ADDR: 0.0.0.0:13001
+      EDB_DATABASE_URL: postgres://aapi:${EDB_AAPI_PASSWORD}@examiner-db:5432/examiner
+    depends_on:
+      migrate-edb-aapi: { condition: service_completed_successfully }
+    networks:
+      platform:
+        aliases: [auth-api]
+
+  web-app:
+    build:
+      context: .
+      dockerfile: apps/web-app/Dockerfile
+    image: exam-platform-dev/web-app
+    restart: unless-stopped
+    ports: ["127.0.0.1:13003:13003"]
+    environment:
+      AUTH_API_URL: http://127.0.0.1:13001
+    depends_on:
+      auth-api: { condition: service_healthy }
+    networks:
+      platform:
+        aliases: [web-app]
+
+networks:
+  platform:
+    name: exam-platform-dev
+
+volumes:
+  examiner-db:
+  curriculum-db:
+  s3:
