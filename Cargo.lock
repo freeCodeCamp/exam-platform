@@ -1219,7 +1219,6 @@ dependencies = [
  "reqwest",
  "runtime",
  "serde",
- "sha2 0.11.1",
  "sqlx",
  "thiserror 2.0.21",
  "time",

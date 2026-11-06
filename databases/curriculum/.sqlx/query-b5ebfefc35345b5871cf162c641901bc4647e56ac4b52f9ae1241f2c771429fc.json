@@ -1,39 +1,29 @@
 {
   "db_name": "MySQL",
-  "query": "SELECT sha256, object_key, content_type, byte_size, file_name, created_at\n            FROM assets ORDER BY created_at DESC, sha256",
+  "query": "SELECT sha256 AS \"sha256: ObjectHash\", object_key AS \"object_key: ObjectKey\",\n                content_type, byte_size, file_name, created_at\n            FROM objects ORDER BY created_at DESC, sha256",
   "describe": {
     "columns": [
       {
         "ordinal": 0,
-        "name": "sha256",
+        "name": "sha256: ObjectHash",
         "type_info": {
           "type": "String",
           "flags": "NOT_NULL",
           "collation": 255,
           "max_size": 256
         },
-        "origin": {
-          "Table": {
-            "table": "curriculum.assets",
-            "name": "sha256"
-          }
-        }
+        "origin": "Expression"
       },
       {
         "ordinal": 1,
-        "name": "object_key",
+        "name": "object_key: ObjectKey",
         "type_info": {
           "type": "VarString",
           "flags": "NOT_NULL",
           "collation": 255,
           "max_size": 1020
         },
-        "origin": {
-          "Table": {
-            "table": "curriculum.assets",
-            "name": "object_key"
-          }
-        }
+        "origin": "Expression"
       },
       {
         "ordinal": 2,
@@ -46,7 +36,7 @@
         },
         "origin": {
           "Table": {
-            "table": "curriculum.assets",
+            "table": "curriculum.objects",
             "name": "content_type"
           }
         }
@@ -62,7 +52,7 @@
         },
         "origin": {
           "Table": {
-            "table": "curriculum.assets",
+            "table": "curriculum.objects",
             "name": "byte_size"
           }
         }
@@ -78,7 +68,7 @@
         },
         "origin": {
           "Table": {
-            "table": "curriculum.assets",
+            "table": "curriculum.objects",
             "name": "file_name"
           }
         }
@@ -94,7 +84,7 @@
         },
         "origin": {
           "Table": {
-            "table": "curriculum.assets",
+            "table": "curriculum.objects",
             "name": "created_at"
           }
         }
@@ -112,5 +102,5 @@
       false
     ]
   },
-  "hash": "5d21607ba073eb9b04556fc282d6189bb324d2e48e8b710598969f7928d9838b"
+  "hash": "b5ebfefc35345b5871cf162c641901bc4647e56ac4b52f9ae1241f2c771429fc"
 }

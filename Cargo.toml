@@ -44,6 +44,7 @@ oauth2 = { version = "5.0.0", default-features = false }
 serde = { version = "1.0.229", features = ["derive"] }
 time = "0.3.55"
 url = "2.5.8"
+bytes = "1.12.1"
 sha2 = "0.11.1"
 # aws-lc-rs: the rustls provider reqwest already uses.
 sqlx = { version = "0.9.0", default-features = false, features = [

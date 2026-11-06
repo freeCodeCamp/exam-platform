@@ -33,6 +33,7 @@ databases/
   | examiner/
 docs/ # mdbook docs
 libs/ # Common across one or more applications
+  | object-storage/ # S3-compatible client, one bucket per store, configured from env
   | runtime/ # env config, tracing + Sentry, Axum serving + graceful shutdown, exit codes
 ```
 

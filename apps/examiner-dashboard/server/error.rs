@@ -14,11 +14,15 @@ pub enum Error {
     Reqwest(#[from] reqwest::Error),
     #[error("{0}")]
     Sqlx(#[from] sqlx::Error),
+    #[error("{0}")]
+    Cdb(#[from] cdb::Error),
     /// Details stay in logs: they name the bucket and provider.
     #[error("object storage request failed")]
     Storage(#[from] StorageError),
     #[error("{0}")]
     TimeConversion(#[from] time::error::ConversionRange),
+    #[error("{0}")]
+    TimeFormat(#[from] time::error::Format),
 }
 
 impl IntoResponse for Error {

@@ -77,7 +77,7 @@ mod tests {
             google_redirect_url: "http://127.0.0.1:13002/auth/google/callback".to_string(),
             mock_auth: false,
             cdb_database_url: "mysql://unused@127.0.0.1:1/unused".to_string(),
-            curriculum_storage: mock_s3_config(),
+            curriculum_bucket: mock_s3_config(),
             web_dir: "dist".to_string(),
         };
         let pool = sqlx::PgPool::connect_lazy(&config.edb_database_url).expect("valid URL");
@@ -89,7 +89,7 @@ mod tests {
             pending_logins: PendingLogins::default(),
             cookie_key: Key::from(config.cookie_key.as_bytes()),
             curriculum: cdb::Database::connect_lazy(&config.cdb_database_url).expect("valid URL"),
-            curriculum_store: ObjectStore::new(&config.curriculum_storage),
+            curriculum_bucket: ObjectStore::new(&config.curriculum_bucket),
             config,
         }
     }

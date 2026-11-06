@@ -8,7 +8,7 @@ publish.workspace = true
 
 [dependencies]
 aws-sdk-s3.workspace = true
-bytes = "1"
+bytes.workspace = true
 thiserror.workspace = true
 url.workspace = true
 

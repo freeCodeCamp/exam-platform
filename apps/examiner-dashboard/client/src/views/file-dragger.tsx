@@ -22,16 +22,13 @@ import { LuFile, LuUpload } from "react-icons/lu";
 import { AppRoot } from "@/components/app-root";
 import { PageShell } from "@/components/page-shell";
 import { ProtectedRoute } from "@/components/protected-route";
-import {
-  ACCEPTED_TYPES,
-  getFiles,
-  MAX_FILE_BYTES,
-  MAX_FILES_PER_UPLOAD,
-  type StoredFile,
-  uploadFiles,
-} from "@/utils/fetch";
+import { getObjects, type StoredObject, uploadObjects } from "@/utils/fetch";
+import { ACCEPT, KIND_NAMES, MAX_FILE_BYTES, MAX_FILES_PER_REQUEST } from "@/utils/objects";
 
-const FILES_QUERY_KEY = ["files"];
+const OBJECTS_QUERY_KEY = ["objects"];
+// Presigned URLs last 15 minutes: refetch before previews break. In a background tab, the interval
+// pauses and focus refetches once the list is stale.
+const OBJECTS_REFRESH_MS = 10 * 60 * 1000;
 
 export function formatBytes(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
@@ -42,15 +39,18 @@ export function formatBytes(bytes: number): string {
 function Uploader() {
   const queryClient = useQueryClient();
   const fileUpload = useFileUpload({
-    maxFiles: MAX_FILES_PER_UPLOAD,
+    maxFiles: MAX_FILES_PER_REQUEST,
     maxFileSize: MAX_FILE_BYTES,
-    accept: ACCEPTED_TYPES,
+    accept: ACCEPT,
   });
   const upload = useMutation({
-    mutationFn: uploadFiles,
-    onSuccess: async () => {
+    mutationFn: uploadObjects,
+    onSuccess: () => {
       fileUpload.clearFiles();
-      await queryClient.invalidateQueries({ queryKey: FILES_QUERY_KEY });
+    },
+    // After a failure too: files before the failed one were stored.
+    onSettled: async () => {
+      await queryClient.invalidateQueries({ queryKey: OBJECTS_QUERY_KEY });
     },
   });
 
@@ -67,8 +67,7 @@ function Uploader() {
           <FileUpload.DropzoneContent>
             <Text fontWeight="medium">Drag files here, or click to choose</Text>
             <Text color="fg.muted" textStyle="sm">
-              PNG, JPEG, GIF, WebP, MP3, WAV, Ogg, FLAC or M4A. Up to {MAX_FILES_PER_UPLOAD} files,{" "}
-              {formatBytes(MAX_FILE_BYTES)} each.
+              {KIND_NAMES}. Up to {MAX_FILES_PER_REQUEST} files, {formatBytes(MAX_FILE_BYTES)} each.
             </Text>
           </FileUpload.DropzoneContent>
         </FileUpload.Dropzone>
@@ -113,7 +112,7 @@ function Uploader() {
   );
 }
 
-function Preview({ file }: { file: StoredFile }) {
+function Preview({ file }: { file: StoredObject }) {
   if (file.contentType.startsWith("image/")) {
     return <Image src={file.url} alt={file.fileName} maxH="full" maxW="full" fit="contain" />;
   }
@@ -127,7 +126,7 @@ function Preview({ file }: { file: StoredFile }) {
   );
 }
 
-function FileCard({ file }: { file: StoredFile }) {
+function ObjectCard({ file }: { file: StoredObject }) {
   return (
     <Card.Root size="sm" overflow="hidden">
       <Center h="40" bg="bg.muted">
@@ -150,16 +149,20 @@ function FileCard({ file }: { file: StoredFile }) {
           </Clipboard.Root>
         </HStack>
         <Text textStyle="xs" color="fg.muted">
-          {formatBytes(file.size)}
-          {file.createdAt && ` · ${new Date(file.createdAt).toLocaleString("en-GB")}`}
+          {formatBytes(file.byteSize)} · {new Date(file.createdAt).toLocaleString("en-GB")}
         </Text>
       </Card.Body>
     </Card.Root>
   );
 }
 
-function UploadedFiles() {
-  const files = useQuery({ queryKey: FILES_QUERY_KEY, queryFn: getFiles });
+function UploadedObjects() {
+  const files = useQuery({
+    queryKey: OBJECTS_QUERY_KEY,
+    queryFn: getObjects,
+    staleTime: OBJECTS_REFRESH_MS,
+    refetchInterval: OBJECTS_REFRESH_MS,
+  });
 
   return (
     <VStack align="stretch" gap="3">
@@ -181,7 +184,7 @@ function UploadedFiles() {
       {files.data?.length === 0 && <Text color="fg.muted">No files yet.</Text>}
       <SimpleGrid columns={{ base: 1, md: 2, xl: 4 }} gap="4">
         {files.data?.map((file) => (
-          <FileCard key={file.sha256} file={file} />
+          <ObjectCard key={file.sha256} file={file} />
         ))}
       </SimpleGrid>
     </VStack>
@@ -199,7 +202,7 @@ export function FileDragger() {
         >
           <VStack align="stretch" gap="8" p="6">
             <Uploader />
-            <UploadedFiles />
+            <UploadedObjects />
           </VStack>
         </PageShell>
       </ProtectedRoute>

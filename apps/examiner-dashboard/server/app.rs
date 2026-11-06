@@ -33,12 +33,12 @@ pub async fn app(config: &AppConfig) -> Router {
         pending_logins: PendingLogins::default(),
         cookie_key: Key::from(config.cookie_key.as_bytes()),
         curriculum,
-        curriculum_store: ObjectStore::new(&config.curriculum_storage),
+        curriculum_bucket: ObjectStore::new(&config.curriculum_bucket),
     };
 
     let api = Router::new()
         .nest("/auth", routes::auth::router(config.mock_auth))
-        .nest("/api/files", routes::files::router())
+        .nest("/api/objects", routes::objects::router())
         .with_state(server_state);
 
     let web_dir_path = PathBuf::from(&config.web_dir);

@@ -24,7 +24,6 @@ runtime.workspace = true
 oauth2.workspace = true
 reqwest = { workspace = true, features = ["json", "rustls"] }
 serde.workspace = true
-sha2.workspace = true
 sqlx.workspace = true
 time = { workspace = true, features = ["formatting"] }
 url.workspace = true

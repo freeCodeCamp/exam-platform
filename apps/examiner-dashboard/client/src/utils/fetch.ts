@@ -67,49 +67,34 @@ export async function postDevLogin(user: { name: string; email: string }): Promi
   }
 }
 
-// Mirrors the server's limits (server/routes/files.rs), so the dropzone rejects what it would.
-export const MAX_FILE_BYTES = 10 * 1024 * 1024;
-export const MAX_FILES_PER_UPLOAD = 5;
-// The server sniffs the bytes and rejects anything else: this only filters the file picker.
-export const ACCEPTED_TYPES = [
-  "image/png",
-  "image/jpeg",
-  "image/gif",
-  "image/webp",
-  "audio/mpeg",
-  "audio/wav",
-  "audio/ogg",
-  "audio/flac",
-  "audio/mp4",
-];
-
-export interface StoredFile {
-  // What a question's `question_assets` row stores.
+export interface StoredObject {
+  // What a question's `question_objects` row stores.
   sha256: string;
-  // Object key, `sha256/<sha256>.<ext>`.
-  key: string;
+  // In the curriculum bucket: `sha256/<sha256>.<ext>`.
+  objectKey: string;
   // Sniffed by the server from the bytes.
   contentType: string;
-  size: number;
+  byteSize: number;
   // As first uploaded.
   fileName: string;
-  // RFC 3339. `null` in an upload's response.
-  createdAt: string | null;
+  // RFC 3339.
+  createdAt: string;
   // Presigned, expires in minutes. Display only: never store it.
   url: string;
 }
 
-export async function getFiles(): Promise<StoredFile[]> {
-  const res = await authorizedFetch("/api/files");
-  return (await res.json()) as StoredFile[];
+export async function getObjects(): Promise<StoredObject[]> {
+  const res = await authorizedFetch("/api/objects");
+  return (await res.json()) as StoredObject[];
 }
 
-export async function uploadFiles(files: File[]): Promise<StoredFile[]> {
+// Already-stored files come back as stored, under their first upload's name.
+export async function uploadObjects(files: File[]): Promise<StoredObject[]> {
   const body = new FormData();
   for (const file of files) {
     body.append("file", file);
   }
 
-  const res = await authorizedFetch("/api/files", { method: "POST", body });
-  return (await res.json()) as StoredFile[];
+  const res = await authorizedFetch("/api/objects", { method: "POST", body });
+  return (await res.json()) as StoredObject[];
 }

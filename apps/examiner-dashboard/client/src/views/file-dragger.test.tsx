@@ -2,7 +2,7 @@
 import { cleanup, fireEvent, render } from "@testing-library/react";
 import { afterEach, expect, test, vi } from "vitest";
 
-import type { StoredFile } from "@/utils/fetch";
+import type { StoredObject } from "@/utils/fetch";
 import { camperbot } from "../../test-utils/session";
 import { FileDragger, formatBytes } from "./file-dragger.tsx";
 
@@ -15,48 +15,57 @@ afterEach(() => {
 });
 
 const diagramHash = "a".repeat(64);
-const diagram: StoredFile = {
+const diagram: StoredObject = {
   sha256: diagramHash,
-  key: `sha256/${diagramHash}.png`,
+  objectKey: `sha256/${diagramHash}.png`,
   contentType: "image/png",
-  size: 2048,
+  byteSize: 2048,
   fileName: "diagram.png",
   createdAt: "2026-11-05T10:00:00Z",
   url: "https://bucket.example/diagram.png?X-Amz-Signature=abc",
 };
 
 const listeningHash = "b".repeat(64);
-const listening: StoredFile = {
+const listening: StoredObject = {
   ...diagram,
   sha256: listeningHash,
-  key: `sha256/${listeningHash}.mp3`,
+  objectKey: `sha256/${listeningHash}.mp3`,
   contentType: "audio/mpeg",
   fileName: "listening-1.mp3",
   url: "https://bucket.example/listening.mp3?X-Amz-Signature=abc",
 };
 
-// A logged-in session, and in-memory assets behind /api/files.
-function mockServer(initial: StoredFile[]) {
+// A logged-in session, and in-memory objects behind /api/objects. `failUpload`: POST stores the
+// first file, then fails.
+function mockServer(initial: StoredObject[], { failUpload = false } = {}) {
   const stored = [...initial];
   const fetch = vi.fn((url: string, init?: RequestInit) => {
     if (url === "/auth/session") {
       return Promise.resolve(Response.json(camperbot));
     }
-    if (url === "/api/files" && init?.method === "POST") {
+    if (url === "/api/objects" && init?.method === "POST") {
       const body = init.body as FormData;
-      const uploaded: StoredFile[] = body.getAll("file").map((file, i) => ({
+      const uploaded: StoredObject[] = body.getAll("file").map((file, i) => ({
         sha256: String(i).repeat(64),
-        key: `sha256/${String(i).repeat(64)}.png`,
+        objectKey: `sha256/${String(i).repeat(64)}.png`,
         contentType: "image/png",
-        size: (file as File).size,
+        byteSize: (file as File).size,
         fileName: (file as File).name,
-        createdAt: null,
+        createdAt: "2026-11-06T10:00:00Z",
         url: "https://bucket.example/new",
       }));
+      if (failUpload) {
+        stored.unshift(...uploaded.slice(0, 1));
+        return Promise.resolve(
+          new Response("b.png: object storage request failed. Stored before it: a.png", {
+            status: 502,
+          }),
+        );
+      }
       stored.unshift(...uploaded);
       return Promise.resolve(Response.json(uploaded, { status: 201 }));
     }
-    if (url === "/api/files") {
+    if (url === "/api/objects") {
       return Promise.resolve(Response.json(stored));
     }
     return Promise.resolve(new Response("not found", { status: 404 }));
@@ -101,9 +110,7 @@ test("uploads chosen files, then lists them", async () => {
   await screen.findByText("No files yet.");
   const image = new File(["png bytes"], "diagram.png", { type: "image/png" });
 
-  // Hidden from the accessibility tree: the dropzone is the accessible control.
-  const input = screen.container.querySelector<HTMLInputElement>("input[type=file]");
-  fireEvent.input(input!, { target: { files: [image] } });
+  choose(screen, [image]);
   fireEvent.click(await screen.findByRole("button", { name: /Upload 1 file/ }));
 
   expect(await screen.findByText("0".repeat(64))).toBeInTheDocument();
@@ -112,6 +119,42 @@ test("uploads chosen files, then lists them", async () => {
   expect(body).toBeInstanceOf(FormData);
   expect((body as FormData).getAll("file")).toEqual([image]);
   expect(screen.getByRole("button", { name: /Upload 0 files/ })).toBeDisabled();
+});
+
+function choose(screen: ReturnType<typeof render>, files: File[]) {
+  // Hidden from the accessibility tree: the dropzone is the accessible control.
+  const input = screen.container.querySelector<HTMLInputElement>("input[type=file]");
+  fireEvent.input(input!, { target: { files } });
+}
+
+test("accepts types browsers report under other names, by extension", async () => {
+  mockServer([]);
+  const screen = render(<FileDragger />);
+  await screen.findByText("No files yet.");
+
+  choose(screen, [
+    new File(["m4a"], "listening.m4a", { type: "audio/x-m4a" }),
+    new File(["wav"], "listening.wav", { type: "audio/x-wav" }),
+    new File(["svg"], "diagram.svg", { type: "image/svg+xml" }),
+  ]);
+
+  expect(await screen.findByRole("button", { name: /Upload 2 files/ })).toBeEnabled();
+  expect(screen.getByText(/diagram\.svg: file invalid type/)).toBeInTheDocument();
+});
+
+test("after a failed upload, shows the error and lists what was stored", async () => {
+  mockServer([], { failUpload: true });
+  const screen = render(<FileDragger />);
+  await screen.findByText("No files yet.");
+
+  choose(screen, [
+    new File(["a"], "a.png", { type: "image/png" }),
+    new File(["b"], "b.png", { type: "image/png" }),
+  ]);
+  fireEvent.click(await screen.findByRole("button", { name: /Upload 2 files/ }));
+
+  expect(await screen.findByText(/Stored before it: a\.png/)).toBeInTheDocument();
+  expect(await screen.findByText("0".repeat(64))).toBeInTheDocument();
 });
 
 test("upload button is disabled until files are chosen", async () => {
