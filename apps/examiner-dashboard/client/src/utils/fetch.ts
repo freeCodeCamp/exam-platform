@@ -66,3 +66,35 @@ export async function postDevLogin(user: { name: string; email: string }): Promi
     throw await responseError(res);
   }
 }
+
+export interface StoredObject {
+  // What a question's `question_objects` row stores.
+  sha256: string;
+  // In the curriculum bucket: `sha256/<sha256>.<ext>`.
+  objectKey: string;
+  // Sniffed by the server from the bytes.
+  contentType: string;
+  byteSize: number;
+  // As first uploaded.
+  fileName: string;
+  // RFC 3339.
+  createdAt: string;
+  // Presigned, expires in minutes. Display only: never store it.
+  url: string;
+}
+
+export async function getObjects(): Promise<StoredObject[]> {
+  const res = await authorizedFetch("/api/objects");
+  return (await res.json()) as StoredObject[];
+}
+
+// Already-stored files come back as stored, under their first upload's name.
+export async function uploadObjects(files: File[]): Promise<StoredObject[]> {
+  const body = new FormData();
+  for (const file of files) {
+    body.append("file", file);
+  }
+
+  const res = await authorizedFetch("/api/objects", { method: "POST", body });
+  return (await res.json()) as StoredObject[];
+}

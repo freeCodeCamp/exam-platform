@@ -1,0 +1,12 @@
+{
+  "db_name": "MySQL",
+  "query": "INSERT INTO objects (sha256, object_key, content_type, byte_size, file_name, created_at)\n            VALUES (?, ?, ?, ?, ?, UTC_TIMESTAMP(6))",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 5
+    },
+    "nullable": []
+  },
+  "hash": "7ccc60526f6bea5c9070fc92edab8b3cedddc86a13a44d0a3b5719860e6cd81b"
+}

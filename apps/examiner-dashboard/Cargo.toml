@@ -10,10 +10,12 @@ path = "server/main.rs"
 name = "server"
 
 [dependencies]
-axum.workspace = true
+axum = { workspace = true, features = ["multipart"] }
 axum-extra.workspace = true
+cdb.workspace = true
 edb.workspace = true
 http.workspace = true
+object-storage.workspace = true
 tokio.workspace = true
 tower-http = { workspace = true, features = ["fs"] }
 tracing.workspace = true
@@ -23,7 +25,7 @@ oauth2.workspace = true
 reqwest = { workspace = true, features = ["json", "rustls"] }
 serde.workspace = true
 sqlx.workspace = true
-time.workspace = true
+time = { workspace = true, features = ["formatting"] }
 url.workspace = true
 
 [dev-dependencies]
