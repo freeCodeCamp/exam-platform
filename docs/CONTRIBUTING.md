@@ -89,7 +89,7 @@ VS Code: install recommended extensions (`.vscode/extensions.json`). Settings ru
 
 #### Slices (Docker)
 
-`bun run dev <slice>...` builds and starts a slice and everything it depends on from `compose.dev.yaml`, waits until healthy, then follows its logs. Ctrl-C detaches; containers keep running. No network setup and no `.env` export needed.
+`bun run dev <slice>...` builds and starts a slice and everything it depends on from `compose.dev.yaml`, attached like `docker compose up`: logs of the slice's own services follow, Ctrl-C stops the slice and its dependencies. `-d` runs it in the background like `docker compose up -d`: waits until healthy, then returns; stop with `bun run dev down`. No network setup and no `.env` export needed.
 
 | Slice  | Starts                                                              |
 | ------ | ------------------------------------------------------------------- |
@@ -103,7 +103,8 @@ VS Code: install recommended extensions (`.vscode/extensions.json`). Settings ru
 
 ```bash
 bun run dev edd          # combine: bun run dev edd wapp
-bun run dev logs edd     # follow logs again
+bun run dev -d edd       # background
+bun run dev logs edd     # follow logs
 bun run dev ps
 bun run dev down         # stop, keep data
 bun run dev reset        # stop, delete data volumes
