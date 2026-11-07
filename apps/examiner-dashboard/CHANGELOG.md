@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.6.0](https://github.com/freeCodeCamp/exam-platform/compare/examiner-dashboard-v0.5.0...examiner-dashboard-v0.6.0) (2026-11-07)
+
+
+### Features
+
+* **eDd:** add s3 object store + test page ([#38](https://github.com/freeCodeCamp/exam-platform/issues/38)) ([5355ada](https://github.com/freeCodeCamp/exam-platform/commit/5355adaa530c6c3dbe58efae2ad975e7837cb3f2))
+
 ## [0.5.0](https://github.com/freeCodeCamp/exam-platform/compare/examiner-dashboard-v0.4.0...examiner-dashboard-v0.5.0) (2026-11-05)
 
 
