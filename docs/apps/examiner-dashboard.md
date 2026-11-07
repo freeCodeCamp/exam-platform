@@ -9,7 +9,7 @@ Where examiners author, review, promote, and moderate.
 | Server port     | `127.0.0.1:13002`                                 |
 | Client dev port | `127.0.0.1:13005`, proxies `/api` to the server   |
 
-The S3 client is `libs/object-storage`, which knows no provider: `CURRICULUM_S3_*` sets the endpoint, region, bucket and key pair. To switch provider, change those values and copy the objects across with their keys.
+The S3 client is `libs/object-storage`, which knows no provider: `CURRICULUM_S3_*` sets the endpoint, region, bucket and key pair. To switch provider, change those values and copy the objects across with their keys. Local development: `bun run dev edd` points eDd at SeaweedFS (`compose.dev.yaml`, [Run](../CONTRIBUTING.md#run)).
 
 The Dockerfile builds `client/` with Bun, `server/` with cargo, and copies `dist` to `/app/web`.
 

@@ -4,7 +4,9 @@
 
 ```bash
 bun i                           # root Bun workspace: web-app, examiner-dashboard, desktop-app
-bun run dev                     # web-app (13003) + examiner-dashboard client (13005)
+bun run dev edd                 # slice in Docker: eDd + eDb + S3, migrated; `-d` background (`bun run dev help`)
+bun run dev down                # stop slices, keep data (`reset` deletes it)
+bun run dev:client              # web-app (13003) + examiner-dashboard client (13005), HMR
 bun run dev:desktop             # desktop-app via tauri dev
 bun run check                   # astro check / tsc -b in every Bun workspace member
 bun run build
