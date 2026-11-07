@@ -59,6 +59,25 @@ Generate cookie key with `openssl rand -hex 64`. Create these Komodo Variables b
 | `EXAM_PLATFORM_EXAMINER_DASHBOARD_GOOGLE_REDIRECT_URL` | Registered callback URL above    |
 | `EXAM_PLATFORM_EXAMINER_DASHBOARD_COOKIE_KEY`          | Generated key; mark secret       |
 
+## Curriculum Bucket
+
+eDd stores question objects (images, audio) in a private S3-compatible bucket. On DigitalOcean:
+
+1. Spaces Object Storage → Create Bucket, e.g. `exam-platform-curriculum` in `nyc3`. Leave the CDN off and file listing restricted: eDd serves objects through presigned URLs only.
+2. Spaces Object Storage → Access Keys → Create Access Key, with Limited Access: read/write on that bucket only. The secret is shown once.
+
+Create these Komodo Variables before syncing/deploying the dashboard. Its `compose.yaml` requires every one, so a deploy without them fails:
+
+| Variable                                                           | Value                                          |
+| ------------------------------------------------------------------ | ---------------------------------------------- |
+| `EXAM_PLATFORM_EXAMINER_DASHBOARD_CURRICULUM_S3_ENDPOINT`          | `https://<region>.digitaloceanspaces.com`      |
+| `EXAM_PLATFORM_EXAMINER_DASHBOARD_CURRICULUM_S3_REGION`            | `us-east-1`: Spaces signs every region with it |
+| `EXAM_PLATFORM_EXAMINER_DASHBOARD_CURRICULUM_S3_BUCKET`            | Bucket name                                    |
+| `EXAM_PLATFORM_EXAMINER_DASHBOARD_CURRICULUM_S3_ACCESS_KEY_ID`     | Access key ID                                  |
+| `EXAM_PLATFORM_EXAMINER_DASHBOARD_CURRICULUM_S3_SECRET_ACCESS_KEY` | Access key secret; mark secret                 |
+
+Other providers: see [Environment Variables](./environment-variables.md).
+
 ## Examiner Database
 
 Until production moves to hosted Postgres, eDb runs as Komodo stack `exam-platform-examiner-db` (`databases/examiner/compose.yaml`). It holds one schema per app plus `shared`, all owned by role `edb_migrator`; the apps connect as roles `edd` and `aapi`, which cannot change the schema. Generate four passwords with `openssl rand -hex 32`, then create secret Variables:

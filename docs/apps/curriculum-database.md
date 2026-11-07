@@ -61,6 +61,12 @@ Table names can also be branch-qualified: `` `curriculum/prd`.exams ``. Only `cd
 
 Dolt does not support `SELECT FOR UPDATE`.
 
+## Objects
+
+The bytes of question images and audio live in the curriculum bucket, not in Dolt. `objects` holds one row per file, keyed by SHA-256, with its object key (`sha256/<sha256>.<ext>`), sniffed content type, byte size and original file name. `question_objects` orders a question's objects and holds their alt text. Rows carry keys, never URLs, so old snapshots keep resolving after a provider or CDN change.
+
+Uploading is not committing. eDd records each upload in eDb (`edd.objects`, see [eDd](./examiner-dashboard.md#question-objects)). Not built yet: when an examiner commits content that references an object, eDd is to copy its row into `objects` in that same Dolt commit.
+
 ## Migrations
 
 `cdb-migrate` (`CDB_MIGRATOR_URL`) applies `migrations/` with sqlx, as `edb-migrate` does for eDb, with these differences for Dolt:

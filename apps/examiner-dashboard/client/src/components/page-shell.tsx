@@ -1,11 +1,13 @@
 import { Box, Button, Center, Flex, Heading, HStack, Text } from "@chakra-ui/react";
 import type { ReactNode } from "react";
-import { LuBlocks, LuGraduationCap, LuHouse } from "react-icons/lu";
+import { LuBlocks, LuDatabase, LuFile, LuGraduationCap, LuHouse } from "react-icons/lu";
 import { ColorModeButton } from "@/components/ui/color-mode";
 
 const navItems = [
   { href: "/", label: "Home", icon: LuHouse },
   { href: "/question-builder", label: "Question Builder", icon: LuBlocks },
+  { href: "/file-dragger", label: "File Dragger", icon: LuFile },
+  { href: "/object-store", label: "Object Store", icon: LuDatabase },
 ];
 
 export function PageShell({

@@ -1,0 +1,19 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO edd.objects\n                (sha256, object_key, content_type, byte_size, file_name, uploaded_by)\n            VALUES ($1, $2, $3, $4, $5, $6)\n            ON CONFLICT (sha256) DO NOTHING",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text",
+        "Text",
+        "Int4",
+        "Text",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "8a5883c41b4c93ebf0a7396cffb626bbaacd24b6638ca1f01e10e4e69f7d7ddb"
+}

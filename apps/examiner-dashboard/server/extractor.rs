@@ -62,7 +62,9 @@ mod tests {
     use tower::ServiceExt;
 
     use super::*;
-    use crate::config::{AppConfig, PendingLogins};
+    use object_storage::ObjectStore;
+
+    use crate::config::{AppConfig, PendingLogins, mock_s3_config};
     use crate::routes::auth::google::google_client;
 
     /// Never connects: these requests are rejected before any query.
@@ -74,6 +76,7 @@ mod tests {
             google_oauth_secret: "secret".to_string(),
             google_redirect_url: "http://127.0.0.1:13002/auth/google/callback".to_string(),
             mock_auth: false,
+            curriculum_bucket: mock_s3_config(),
             web_dir: "dist".to_string(),
         };
         let pool = sqlx::PgPool::connect_lazy(&config.edb_database_url).expect("valid URL");
@@ -84,6 +87,7 @@ mod tests {
             google_client: google_client(&config),
             pending_logins: PendingLogins::default(),
             cookie_key: Key::from(config.cookie_key.as_bytes()),
+            curriculum_bucket: ObjectStore::new(&config.curriculum_bucket),
             config,
         }
     }

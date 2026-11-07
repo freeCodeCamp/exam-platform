@@ -7,6 +7,7 @@ use tower_http::services::{ServeDir, ServeFile};
 
 use crate::config::{AppConfig, PendingLogins, ServerState};
 use crate::routes::{self, auth::google::google_client};
+use object_storage::ObjectStore;
 
 pub async fn app(config: &AppConfig) -> Router {
     let google_client = google_client(config);
@@ -27,10 +28,13 @@ pub async fn app(config: &AppConfig) -> Router {
         google_client,
         pending_logins: PendingLogins::default(),
         cookie_key: Key::from(config.cookie_key.as_bytes()),
+        curriculum_bucket: ObjectStore::new(&config.curriculum_bucket),
     };
 
     let api = Router::new()
         .nest("/auth", routes::auth::router(config.mock_auth))
+        .nest("/api/objects", routes::objects::router())
+        .nest("/api/object-store", routes::object_store::router())
         .with_state(server_state);
 
     let web_dir_path = PathBuf::from(&config.web_dir);

@@ -1,0 +1,22 @@
+[package]
+name = "object-storage"
+version = "0.1.0"
+description = "S3-compatible object storage client, provider-agnostic: one bucket per ObjectStore"
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+
+[dependencies]
+aws-sdk-s3.workspace = true
+bytes.workspace = true
+thiserror.workspace = true
+url.workspace = true
+
+[dev-dependencies]
+reqwest.workspace = true
+runtime = { workspace = true, default-features = false }
+tokio.workspace = true
+uuid = { workspace = true, features = ["v4"] }
+
+[lints]
+workspace = true
