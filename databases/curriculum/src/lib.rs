@@ -1,18 +1,15 @@
 //! cDb: versioned curriculum content. Dolt.
-use std::{collections::HashMap, str::FromStr, time::Duration};
+use std::{collections::HashMap, time::Duration};
 
 use sqlx::{
-    Connection, MySql, MySqlConnection, MySqlPool, Row,
+    Connection, MySqlConnection, MySqlPool, Row,
     migrate::{Migrate, MigrateError, Migrator},
-    mysql::{MySqlConnectOptions, MySqlPoolOptions},
-    pool::PoolConnection,
+    mysql::MySqlPoolOptions,
 };
 
 mod aapi;
 mod edd;
 mod shared;
-
-pub use edd::{InvalidObjectHash, NewObject, Object, ObjectHash, ObjectKey};
 
 /// The only branch migrations reach directly.
 pub const DEV: &str = "dev";
@@ -35,11 +32,8 @@ pub enum Error {
         expected: &'static str,
         actual: String,
     },
-    #[error("merging {branch} into {DEV} conflicted ({conflicts}): aborted, {DEV} unchanged")]
-    MergeConflict {
-        branch: &'static str,
-        conflicts: i64,
-    },
+    #[error("merging {SCRATCH} into {DEV} conflicted ({conflicts}): aborted, {DEV} unchanged")]
+    MergeConflict { conflicts: i64 },
 }
 
 /// Every migration in `migrations/`, tracked in `_sqlx_migrations` (`sqlx.toml`).
@@ -75,16 +69,11 @@ pub(crate) async fn migrate_with(
     conn: &mut MySqlConnection,
     migrator: &Migrator,
 ) -> Result<Vec<i64>, Error> {
-    let database: String = sqlx::query_scalar("SELECT DATABASE()")
-        .fetch_one(&mut *conn)
-        .await?;
-    let lock = format!("cdb-migrate:{database}");
-    // Waits for as long as it takes: cdb-migrate's own timeout bounds the run.
-    acquire_lock(conn, &lock, -1).await?;
+    let lock = lock(conn).await?;
     let result = async {
         let applied = apply_on_scratch(conn, migrator).await?;
         if !applied.is_empty() {
-            merge_scratch(conn, &applied).await?;
+            merge_into_dev(conn, &applied).await?;
         }
         drop_scratch(conn).await?;
         Ok(applied)
@@ -94,46 +83,20 @@ pub(crate) async fn migrate_with(
     result
 }
 
-/// Takes the named lock `name`, waiting up to `timeout_secs`, or forever when negative. It belongs
-/// to the session: closing the connection releases it.
-pub(crate) async fn acquire_lock(
-    conn: &mut MySqlConnection,
-    name: &str,
-    timeout_secs: i64,
-) -> Result<(), Error> {
-    let acquired = sqlx::query_scalar!("SELECT GET_LOCK(?, ?) AS acquired", name, timeout_secs)
+async fn lock(conn: &mut MySqlConnection) -> Result<String, Error> {
+    let database: String = sqlx::query_scalar("SELECT DATABASE()")
+        .fetch_one(&mut *conn)
+        .await?;
+    let name = format!("cdb-migrate:{database}");
+    // Waits for as long as it takes: cdb-migrate's own timeout bounds the run.
+    let acquired: Option<i64> = sqlx::query_scalar("SELECT GET_LOCK(?, -1)")
+        .bind(&name)
         .fetch_one(&mut *conn)
         .await?;
     if acquired != Some(1) {
-        return Err(Error::Lock(name.to_owned()));
+        return Err(Error::Lock(name));
     }
-    Ok(())
-}
-
-/// Merges `branch` into [`DEV`], authored by `author`. `conn` must already be on `dev`: by
-/// `dolt_checkout` or by `USE`. A fast-forward when `dev` has not moved since `branch` left it,
-/// otherwise a merge commit with `message`. On conflicts, aborts and leaves `dev` unchanged.
-pub(crate) async fn merge_into_dev(
-    conn: &mut MySqlConnection,
-    branch: &'static str,
-    message: &str,
-    author: &str,
-) -> Result<(), Error> {
-    // Fails, and rolls back, on conflicts: `dolt_allow_commit_conflicts` is off (config/server.yaml).
-    let row = sqlx::query("CALL DOLT_MERGE(?, '-m', ?, '--author', ?)")
-        .bind(branch)
-        .bind(message)
-        .bind(author)
-        .fetch_one(&mut *conn)
-        .await?;
-    let conflicts: i64 = row.try_get("conflicts")?;
-    if conflicts != 0 {
-        sqlx::query("CALL DOLT_MERGE('--abort')")
-            .execute(&mut *conn)
-            .await?;
-        return Err(Error::MergeConflict { branch, conflicts });
-    }
-    Ok(())
+    Ok(name)
 }
 
 async fn unlock(conn: &mut MySqlConnection, name: &str) -> Result<(), Error> {
@@ -223,19 +186,27 @@ pub(crate) async fn apply_on_scratch(
 }
 
 /// Step 3 of [`migrate_with`].
-pub(crate) async fn merge_scratch(
+pub(crate) async fn merge_into_dev(
     conn: &mut MySqlConnection,
     applied: &[i64],
 ) -> Result<(), Error> {
     let (first, last) = (applied[0], applied[applied.len() - 1]);
     checkout(conn, DEV).await?;
-    merge_into_dev(
-        conn,
-        SCRATCH,
-        &format!("cdb-migrate: merge {first:04}..{last:04}"),
-        AUTHOR,
-    )
-    .await
+    // Fails, and rolls back, on conflicts: `dolt_allow_commit_conflicts` is off (config/server.yaml).
+    let row = sqlx::query("CALL DOLT_MERGE(?, '-m', ?, '--author', ?)")
+        .bind(SCRATCH)
+        .bind(format!("cdb-migrate: merge {first:04}..{last:04}"))
+        .bind(AUTHOR)
+        .fetch_one(&mut *conn)
+        .await?;
+    let conflicts: i64 = row.try_get("conflicts")?;
+    if conflicts != 0 {
+        sqlx::query("CALL DOLT_MERGE('--abort')")
+            .execute(&mut *conn)
+            .await?;
+        return Err(Error::MergeConflict { conflicts });
+    }
+    Ok(())
 }
 
 /// Step 4 of [`migrate_with`]. Leaves [`DEV`] checked out.
@@ -250,71 +221,29 @@ pub(crate) async fn drop_scratch(conn: &mut MySqlConnection) -> Result<(), Error
 
 #[derive(Debug, Clone)]
 pub struct Database {
+    #[expect(dead_code, reason = "no queries yet")]
     pool: MySqlPool,
-    /// The database `url` names, e.g. `curriculum`. Branches are `<name>/<branch>`.
-    name: String,
 }
 
 impl Database {
-    /// Connects to cDb. `url` names a database, never a `db/branch` revision.
+    /// Connects to cDb.
     ///
     /// Never migrates. `cdb-migrate` should have already run. A `dolt_checkout` stays on its pooled
-    /// connection for the next borrower, and `ROLLBACK` does not undo it: every method starts with
-    /// [`Database::on_branch`], and none calls `dolt_checkout`.
+    /// connection for the next borrower, and `ROLLBACK` does not undo it: start every transaction with
+    /// `` USE `curriculum/<branch>` ``, or give each branch a pool that runs that `USE` in
+    /// `after_connect` and never calls `dolt_checkout`.
     pub async fn connect(url: &str) -> Result<Self, sqlx::Error> {
-        Self::connect_with(MySqlConnectOptions::from_str(url)?).await
-    }
-
-    /// Connects on first query. For tests whose requests never reach cDb.
-    pub fn connect_lazy(url: &str) -> Result<Self, sqlx::Error> {
-        let options = MySqlConnectOptions::from_str(url)?;
-        let name = Self::name(&options)?;
-        let pool = MySqlPoolOptions::new().connect_lazy_with(options);
-        Ok(Self { pool, name })
-    }
-
-    fn name(options: &MySqlConnectOptions) -> Result<String, sqlx::Error> {
-        options
-            .get_database()
-            .filter(|name| !name.is_empty() && !name.contains(['/', '`']))
-            .map(str::to_owned)
-            .ok_or_else(|| sqlx::Error::Configuration("cDb URL must name a database".into()))
-    }
-
-    /// [`Database::connect`], from parsed options.
-    pub async fn connect_with(options: MySqlConnectOptions) -> Result<Self, sqlx::Error> {
-        let name = Self::name(&options)?;
         let pool = MySqlPoolOptions::new()
             .max_connections(10)
             .acquire_timeout(Duration::from_secs(5))
-            .connect_with(options)
+            .connect(url)
             .await?;
 
-        Ok(Self { pool, name })
+        Ok(Self { pool })
     }
 
-    /// A pooled connection, switched to `branch` with `USE`, which reads, writes and
-    /// `dolt_commit`s there without touching checkout state.
-    pub(crate) async fn on_branch(
-        &self,
-        branch: &str,
-    ) -> Result<PoolConnection<MySql>, sqlx::Error> {
-        let mut conn = self.pool.acquire().await?;
-        self.switch(&mut conn, branch).await?;
-        Ok(conn)
-    }
-
-    /// Switches `conn` to `branch` with `USE`.
-    pub(crate) async fn switch(
-        &self,
-        conn: &mut MySqlConnection,
-        branch: &str,
-    ) -> Result<(), sqlx::Error> {
-        // Neither part is user input: `name` is checked in `connect`, branches are constants.
-        sqlx::raw_sql(sqlx::AssertSqlSafe(format!("USE `{}/{branch}`", self.name)))
-            .execute(conn)
-            .await?;
-        Ok(())
+    pub fn from_pool(pool: MySqlPool) -> Self {
+        Self { pool }
     }
 }
 
@@ -373,11 +302,6 @@ pub(crate) mod testing {
 
         pub async fn connect(&self) -> sqlx::Result<MySqlConnection> {
             self.options.connect().await
-        }
-
-        /// The SDK, on this database.
-        pub async fn database(&self) -> sqlx::Result<crate::Database> {
-            crate::Database::connect_with(self.options.clone()).await
         }
 
         /// Runs `migrator` as `cdb-migrate` does, on a connection of its own.
@@ -665,7 +589,7 @@ mod tests {
             "CREATE TABLE content (id int PRIMARY KEY); INSERT INTO content VALUES (1)",
         )
         .await?;
-        merge_scratch(&mut conn, &applied).await?;
+        merge_into_dev(&mut conn, &applied).await?;
         drop_scratch(&mut conn).await?;
 
         let message: String = sqlx::query_scalar("SELECT message FROM dolt_log(?) LIMIT 1")

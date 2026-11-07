@@ -14,8 +14,6 @@ pub enum Error {
     Reqwest(#[from] reqwest::Error),
     #[error("{0}")]
     Sqlx(#[from] sqlx::Error),
-    #[error("{0}")]
-    Cdb(#[from] cdb::Error),
     /// Details stay in logs: they name the bucket and provider.
     #[error("object storage request failed")]
     Storage(#[from] StorageError),
@@ -23,6 +21,12 @@ pub enum Error {
     TimeConversion(#[from] time::error::ConversionRange),
     #[error("{0}")]
     TimeFormat(#[from] time::error::Format),
+}
+
+impl Error {
+    pub fn bad_request(message: impl Into<String>) -> Self {
+        Self::Server(StatusCode::BAD_REQUEST, message.into())
+    }
 }
 
 impl IntoResponse for Error {

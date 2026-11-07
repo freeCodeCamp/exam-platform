@@ -44,7 +44,8 @@ impl std::fmt::Display for ConfigError {
 
 impl std::error::Error for ConfigError {}
 
-/// Reads `key`, treating an empty value as unset so compose's `${VAR:-}` means "not set".
-pub(crate) fn var(key: &str) -> Option<String> {
+/// Reads env var `key`, treating an empty value as unset so compose's `${VAR:-}` means "not set".
+/// Every bin reads optional config through this.
+pub fn var(key: &str) -> Option<String> {
     std::env::var(key).ok().filter(|v| !v.is_empty())
 }

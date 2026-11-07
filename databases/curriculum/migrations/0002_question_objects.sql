@@ -2,6 +2,10 @@
 -- content-addressed: `object_key` is `sha256/<sha256>.<ext>`, never a URL, so the provider, bucket
 -- host or CDN can change without rewriting rows. Same bytes, same key: objects are never
 -- overwritten with different content, and never deleted while any commit still references them.
+--
+-- Uploading records a file in eDb (`edd.objects`), not here. eDd copies its row here in the same
+-- Dolt commit as the content that first references it, so a commit holds exactly the objects its
+-- content uses.
 CREATE TABLE objects (
   sha256 CHAR(64) PRIMARY KEY,
   object_key VARCHAR(255) NOT NULL UNIQUE,

@@ -65,21 +65,7 @@ Dolt does not support `SELECT FOR UPDATE`.
 
 The bytes of question images and audio live in the curriculum bucket, not in Dolt. `objects` holds one row per file, keyed by SHA-256, with its object key (`sha256/<sha256>.<ext>`), sniffed content type, byte size and original file name. `question_objects` orders a question's objects and holds their alt text. Rows carry keys, never URLs, so old snapshots keep resolving after a provider or CDN change.
 
-`ObjectHash` and `ObjectKey` are the only way to build a hash or key in Rust: `ObjectKey::new` derives the key from the hash, so a key always names its bytes. The SQL `CHECK`s back them up.
-
-eDd (`CDB_DATABASE_URL`) writes `objects` on `dev` through `Database::insert_object`, never in `dev`'s working set. Under a `GET_LOCK` named for the database, each new file:
-
-1. Recreates branch `edd-objects` from `dev`'s HEAD.
-2. Inserts the row there and commits it (`eDd: add object <key>`), authored by the examiner.
-3. Merges `edd-objects` into `dev`: a fast-forward, or a second commit (`eDd: merge object <key>`) if `dev` moved meanwhile.
-
-Steps 1 and 3 are `cdb-migrate`'s scratch-branch flow, sharing its lock and merge helpers. Why:
-
-- `dolt_commit` on `dev` commits everything staged there, including other sessions' work. A merge builds on `dev`'s HEAD, so other uncommitted content stays out of the commit. It stays in the working set, but loses its staged flag.
-- Until the merge, `dev` lacks the row. A failed or interrupted insert leaves nothing on `dev`, so a retry redoes every step. `edd-objects` may be left behind; the next insert recreates it.
-- Uncommitted `objects` changes on `dev` fail every insert: the merge would overwrite them. Commit or discard them.
-
-The SDK switches branch with `USE` on every call and never calls `dolt_checkout`.
+Uploading is not committing. eDd records each upload in eDb (`edd.objects`, see [eDd](./examiner-dashboard.md#question-objects)). Not built yet: when an examiner commits content that references an object, eDd is to copy its row into `objects` in that same Dolt commit.
 
 ## Migrations
 

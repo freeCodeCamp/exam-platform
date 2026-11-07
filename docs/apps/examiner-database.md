@@ -14,12 +14,12 @@ Hosted (eventually) Postgres database.
 
 ## Roles
 
-| Role           | Owns                                   | Privileges                                                                            | Used by                          |
-| -------------- | -------------------------------------- | ------------------------------------------------------------------------------------- | -------------------------------- |
-| `postgres`     | -                                      | Superuser                                                                             | Bootstrap and tests. Never apps. |
-| `edb_migrator` | schemas `edb`, `edd`, `aapi`, `shared` | Everything in them; no `CREATE` on the database                                       | `edb-migrate`, `cargo sqlx`      |
-| `edd`          | -                                      | Read/write `edd.users`, `edd.sessions`; read `aapi.candidates`; per-table in `shared` | eDd                              |
-| `aapi`         | -                                      | Read/write `aapi.candidates`; per-table in `shared`. Nothing in `edd`                 | `aAPI`                           |
+| Role           | Owns                                   | Privileges                                                                                                                                      | Used by                          |
+| -------------- | -------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------- |
+| `postgres`     | -                                      | Superuser                                                                                                                                       | Bootstrap and tests. Never apps. |
+| `edb_migrator` | schemas `edb`, `edd`, `aapi`, `shared` | Everything in them; no `CREATE` on the database                                                                                                 | `edb-migrate`, `cargo sqlx`      |
+| `edd`          | -                                      | Read/write `edd.users`, `edd.sessions`; read/insert/delete `edd.objects`, update its `file_name`; read `aapi.candidates`; per-table in `shared` | eDd                              |
+| `aapi`         | -                                      | Read/write `aapi.candidates`; per-table in `shared`. Nothing in `edd`                                                                           | `aAPI`                           |
 
 Bootstrap creates the roles and schemas, and revokes `TEMP` from `PUBLIC`. Migrations create every table and grant the app roles access to it explicitly: no default privileges, so each new table is a deliberate decision. Neither app role can read `edb` - the migration history. Queries should name the schema (e.g. `edd.users`), and should never rely on unqualified `search_path`.
 

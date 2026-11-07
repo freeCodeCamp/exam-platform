@@ -1,28 +1,30 @@
-//! Question objects: files (images, audio) uploaded to the curriculum bucket and recorded in cDb's
-//! `objects` table on `dev`.
+//! Question objects: files (images, audio) uploaded to the curriculum bucket and recorded in eDb's
+//! `edd.objects`. An upload is not curriculum content: its row reaches cDb only with the content
+//! commit that first references it.
 //!
 //! Content-addressed: the key is `sha256/<sha256>.<ext>`, so re-uploading the same bytes stores
-//! nothing and an object is never overwritten with different content. Listing reads cDb, never the
-//! bucket. No delete: every Dolt commit keeps its rows, so an object may be referenced long after
-//! `dev` stops pointing at it.
-use std::time::Duration;
-
+//! nothing and an object is never overwritten with different content. Listing reads eDb, never the
+//! bucket. Renaming and deleting are the object store's (`object_store.rs`).
 use axum::{
     Json, Router,
     body::Bytes,
     extract::{DefaultBodyLimit, Multipart, State, multipart::MultipartError},
-    http::header::{CACHE_CONTROL, HeaderValue},
     response::IntoResponse,
     routing::get,
 };
-use cdb::{NewObject, Object, ObjectHash, ObjectKey};
+use edb::{NewObject, Object, ObjectHash, ObjectKey};
 use http::StatusCode;
 use object_storage::ObjectStore;
 use serde::Serialize;
-use time::format_description::well_known::Rfc3339;
+use sqlx::types::Uuid;
 use tracing::instrument;
 
-use crate::{config::ServerState, error::Error, extractor::AuthUser};
+use crate::{
+    config::ServerState,
+    error::Error,
+    extractor::AuthUser,
+    objects::{ObjectRecord, clean_file_name, presigned_get, uncached_json},
+};
 
 pub const MAX_FILE_BYTES: usize = 10 * 1024 * 1024;
 /// Every part is buffered before any is stored, so this bounds memory per request.
@@ -30,11 +32,6 @@ pub const MAX_FILES_PER_REQUEST: usize = 5;
 /// Multipart boundaries and part headers.
 const MULTIPART_OVERHEAD_BYTES: usize = 64 * 1024;
 const MAX_REQUEST_BYTES: usize = MAX_FILES_PER_REQUEST * MAX_FILE_BYTES + MULTIPART_OVERHEAD_BYTES;
-/// cDb's `objects.file_name` is `VARCHAR(255)`: characters.
-const MAX_FILE_NAME_CHARS: usize = 255;
-/// Long enough to render a page of previews, short enough that a leaked link soon dies. The client
-/// refetches before it runs out.
-const PRESIGNED_URL_TTL: Duration = Duration::from_secs(15 * 60);
 
 pub fn router() -> Router<ServerState> {
     Router::new()
@@ -42,57 +39,44 @@ pub fn router() -> Router<ServerState> {
         .layer(DefaultBodyLimit::max(MAX_REQUEST_BYTES))
 }
 
+/// A recorded object: its eDb record, with its bytes' key and a link to them.
 #[derive(Debug, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
-pub struct StoredObject {
-    pub sha256: String,
+pub struct RecordedObject {
+    #[serde(flatten)]
+    pub record: ObjectRecord,
     /// In the curriculum bucket.
     pub object_key: String,
-    pub content_type: String,
     pub byte_size: i32,
-    /// As first uploaded.
-    pub file_name: String,
-    /// RFC 3339.
-    pub created_at: String,
-    /// Presigned `GET`, valid for [`PRESIGNED_URL_TTL`]. Never store it: store `sha256`.
+    /// See [`presigned_get`]. Never store it: store `sha256`.
     pub url: String,
 }
 
-impl StoredObject {
+impl RecordedObject {
     async fn new(object: Object, bucket: &ObjectStore) -> Result<Self, Error> {
-        let url = bucket
-            .presigned_get(object.object_key.as_str(), PRESIGNED_URL_TTL)
-            .await?;
         Ok(Self {
-            sha256: object.sha256.into_string(),
+            record: ObjectRecord::new(&object)?,
+            url: presigned_get(bucket, object.object_key.as_str()).await?,
             object_key: object.object_key.into_string(),
-            content_type: object.content_type,
             byte_size: object.byte_size,
-            file_name: object.file_name,
-            created_at: object.created_at.assume_utc().format(&Rfc3339)?,
-            url,
         })
     }
 }
 
-/// Every object on cDb's `dev`, newest first.
+/// Every uploaded object, newest first.
 #[instrument(skip_all, err(Debug), level = "debug")]
 pub async fn get_objects(
     _: AuthUser,
     State(server_state): State<ServerState>,
 ) -> Result<impl IntoResponse, Error> {
-    let objects = server_state.curriculum.list_objects().await?;
+    let objects = server_state.database.list_objects().await?;
 
-    let mut stored = Vec::with_capacity(objects.len());
+    let mut recorded = Vec::with_capacity(objects.len());
     for object in objects {
-        stored.push(StoredObject::new(object, &server_state.curriculum_bucket).await?);
+        recorded.push(RecordedObject::new(object, &server_state.curriculum_bucket).await?);
     }
 
-    Ok((
-        // Presigned URLs expire.
-        [(CACHE_CONTROL, HeaderValue::from_static("no-store"))],
-        Json(stored),
-    ))
+    Ok(uncached_json(recorded))
 }
 
 /// A file part that passed every check.
@@ -104,10 +88,10 @@ struct Upload {
     body: Bytes,
 }
 
-/// Stores each file part of a `multipart/form-data` body, then records it in cDb. Non-file parts
+/// Stores each file part of a `multipart/form-data` body, then records it in eDb. Non-file parts
 /// are ignored. Every file is checked before any is stored, so a rejected request stores nothing.
 ///
-/// A file already in cDb is neither re-sent to the bucket nor re-recorded: its response entry is
+/// A file already in eDb is neither re-sent to the bucket nor re-recorded: its response entry is
 /// the stored row, with the first upload's file name. Parts are stored in order: when one fails,
 /// those before it stay stored, and the error names them. Retrying the request is safe.
 #[instrument(skip_all, err(Debug), level = "debug")]
@@ -124,7 +108,7 @@ pub async fn post_objects(
             continue;
         };
         if uploads.len() == MAX_FILES_PER_REQUEST {
-            return Err(bad_request(format!(
+            return Err(Error::bad_request(format!(
                 "at most {MAX_FILES_PER_REQUEST} files per upload"
             )));
         }
@@ -140,7 +124,7 @@ pub async fn post_objects(
             body.extend_from_slice(&chunk);
         }
         if body.is_empty() {
-            return Err(bad_request(format!("{file_name} is empty")));
+            return Err(Error::bad_request(format!("{file_name} is empty")));
         }
         let kind = sniff(&body).ok_or_else(|| {
             Error::Server(
@@ -160,14 +144,13 @@ pub async fn post_objects(
     }
 
     if uploads.is_empty() {
-        return Err(bad_request("no files in upload".to_string()));
+        return Err(Error::bad_request("no files in upload"));
     }
 
-    let author = author(&user.name, &user.email);
     let mut stored = Vec::with_capacity(uploads.len());
     for upload in uploads {
         let file_name = upload.file_name.clone();
-        match store(&server_state, upload, &author).await {
+        match store(&server_state, upload, user.id).await {
             Ok(object) => stored.push(object),
             Err(error) => return Err(part_failed(&file_name, error, &stored)),
         }
@@ -176,22 +159,27 @@ pub async fn post_objects(
     Ok((StatusCode::CREATED, Json(stored)))
 }
 
-/// Stores `upload` in the bucket and cDb, unless cDb already has it.
+/// Stores `upload` in the bucket and eDb, unless eDb already has it. Holds the key's lock
+/// throughout, so a concurrent delete cannot remove the bytes between the check and the record.
 async fn store(
     server_state: &ServerState,
     upload: Upload,
-    author: &str,
-) -> Result<StoredObject, Error> {
-    let cdb = &server_state.curriculum;
+    uploaded_by: Uuid,
+) -> Result<RecordedObject, Error> {
     let bucket = &server_state.curriculum_bucket;
+    let mut lock = server_state
+        .database
+        .lock_object_key(upload.object_key.as_str())
+        .await?;
 
-    if let Some(object) = cdb.get_object(&upload.sha256).await? {
-        return StoredObject::new(object, bucket).await;
+    if let Some(object) = lock.get_object(&upload.sha256).await? {
+        lock.commit().await?;
+        return RecordedObject::new(object, bucket).await;
     }
 
     let byte_size =
         i32::try_from(upload.body.len()).expect("Unreachable. bounded by MAX_FILE_BYTES");
-    // Bucket first: a recorded object always has its bytes. If cDb then fails, the object stays
+    // Bucket first: a recorded object always has its bytes. If eDb then fails, the object stays
     // in the bucket unrecorded until a retry records it.
     bucket
         .put(
@@ -200,29 +188,27 @@ async fn store(
             upload.kind.content_type,
         )
         .await?;
-    // `false`: a concurrent upload recorded it first. Either way, return the stored row.
-    cdb.insert_object(
-        &NewObject {
-            sha256: &upload.sha256,
-            object_key: &upload.object_key,
-            content_type: upload.kind.content_type,
-            byte_size,
-            file_name: &upload.file_name,
-        },
-        author,
-    )
+    lock.insert_object(&NewObject {
+        sha256: &upload.sha256,
+        object_key: &upload.object_key,
+        content_type: upload.kind.content_type,
+        byte_size,
+        file_name: &upload.file_name,
+        uploaded_by,
+    })
     .await?;
-    let object = cdb.get_object(&upload.sha256).await?.ok_or_else(|| {
+    let object = lock.get_object(&upload.sha256).await?.ok_or_else(|| {
         Error::Server(
             StatusCode::INTERNAL_SERVER_ERROR,
             format!("{} recorded but not found", upload.object_key),
         )
     })?;
-    StoredObject::new(object, bucket).await
+    lock.commit().await?;
+    RecordedObject::new(object, bucket).await
 }
 
 /// `error` storing `file_name`, naming what was stored before it.
-fn part_failed(file_name: &str, error: Error, stored: &[StoredObject]) -> Error {
+fn part_failed(file_name: &str, error: Error, stored: &[RecordedObject]) -> Error {
     tracing::error!(%error, file_name, "storing an uploaded file failed");
     let message = error.to_string();
     let status = StatusCode::from(error);
@@ -231,7 +217,7 @@ fn part_failed(file_name: &str, error: Error, stored: &[StoredObject]) -> Error 
     } else {
         stored
             .iter()
-            .map(|object| object.file_name.as_str())
+            .map(|object| object.record.file_name.as_str())
             .collect::<Vec<_>>()
             .join(", ")
     };
@@ -241,38 +227,8 @@ fn part_failed(file_name: &str, error: Error, stored: &[StoredObject]) -> Error 
     )
 }
 
-fn bad_request(message: String) -> Error {
-    Error::Server(StatusCode::BAD_REQUEST, message)
-}
-
 fn multipart_error(error: MultipartError) -> Error {
     Error::Server(error.status(), error.body_text())
-}
-
-/// Shown to examiners and kept in cDb: no control characters, at most [`MAX_FILE_NAME_CHARS`].
-fn clean_file_name(raw: &str) -> String {
-    let name: String = raw
-        .chars()
-        .filter(|c| !c.is_control())
-        .take(MAX_FILE_NAME_CHARS)
-        .collect();
-    let name = name.trim();
-    if name.is_empty() {
-        "unnamed".to_string()
-    } else {
-        name.to_string()
-    }
-}
-
-/// Dolt's `Name <email>`. The name loses anything that would end it early.
-fn author(name: &str, email: &str) -> String {
-    let name: String = name
-        .chars()
-        .filter(|c| !c.is_control() && !matches!(c, '<' | '>'))
-        .collect();
-    let name = name.trim();
-    let name = if name.is_empty() { email } else { name };
-    format!("{name} <{email}>")
 }
 
 /// An accepted file type. Sniffed from the bytes: the uploader's content type and file name are
@@ -427,30 +383,6 @@ mod tests {
         assert_eq!(
             Kind::names(),
             "PNG, JPEG, GIF, WebP, MP3, WAV, Ogg, FLAC, M4A"
-        );
-    }
-
-    #[test]
-    fn cleans_file_names() {
-        assert_eq!(clean_file_name(" diagram\n.png "), "diagram.png");
-        assert_eq!(clean_file_name(""), "unnamed");
-        assert_eq!(clean_file_name("\u{7}"), "unnamed");
-        assert_eq!(clean_file_name(&"é".repeat(300)).chars().count(), 255);
-    }
-
-    #[test]
-    fn authors_stay_well_formed() {
-        assert_eq!(
-            author("Ada Lovelace", "ada@freecodecamp.org"),
-            "Ada Lovelace <ada@freecodecamp.org>"
-        );
-        assert_eq!(
-            author("Eve <x@y>\n", "eve@freecodecamp.org"),
-            "Eve x@y <eve@freecodecamp.org>"
-        );
-        assert_eq!(
-            author("", "a@freecodecamp.org"),
-            "a@freecodecamp.org <a@freecodecamp.org>"
         );
     }
 }

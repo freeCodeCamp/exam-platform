@@ -2,9 +2,10 @@
 import { cleanup, fireEvent, render } from "@testing-library/react";
 import { afterEach, expect, test, vi } from "vitest";
 
-import type { StoredObject } from "@/utils/fetch";
+import type { RecordedObject } from "@/utils/fetch";
 import { camperbot } from "../../test-utils/session";
-import { FileDragger, formatBytes } from "./file-dragger.tsx";
+import { formatBytes } from "@/utils/objects";
+import { FileDragger } from "./file-dragger.tsx";
 
 vi.mock("@/utils/navigate");
 
@@ -15,7 +16,7 @@ afterEach(() => {
 });
 
 const diagramHash = "a".repeat(64);
-const diagram: StoredObject = {
+const diagram: RecordedObject = {
   sha256: diagramHash,
   objectKey: `sha256/${diagramHash}.png`,
   contentType: "image/png",
@@ -26,7 +27,7 @@ const diagram: StoredObject = {
 };
 
 const listeningHash = "b".repeat(64);
-const listening: StoredObject = {
+const listening: RecordedObject = {
   ...diagram,
   sha256: listeningHash,
   objectKey: `sha256/${listeningHash}.mp3`,
@@ -37,7 +38,7 @@ const listening: StoredObject = {
 
 // A logged-in session, and in-memory objects behind /api/objects. `failUpload`: POST stores the
 // first file, then fails.
-function mockServer(initial: StoredObject[], { failUpload = false } = {}) {
+function mockServer(initial: RecordedObject[], { failUpload = false } = {}) {
   const stored = [...initial];
   const fetch = vi.fn((url: string, init?: RequestInit) => {
     if (url === "/auth/session") {
@@ -45,7 +46,7 @@ function mockServer(initial: StoredObject[], { failUpload = false } = {}) {
     }
     if (url === "/api/objects" && init?.method === "POST") {
       const body = init.body as FormData;
-      const uploaded: StoredObject[] = body.getAll("file").map((file, i) => ({
+      const uploaded: RecordedObject[] = body.getAll("file").map((file, i) => ({
         sha256: String(i).repeat(64),
         objectKey: `sha256/${String(i).repeat(64)}.png`,
         contentType: "image/png",

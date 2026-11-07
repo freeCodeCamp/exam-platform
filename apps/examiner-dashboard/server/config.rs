@@ -23,8 +23,6 @@ pub struct ServerState {
     pub google_client: GoogleClient,
     pub pending_logins: PendingLogins,
     pub cookie_key: Key,
-    /// cDb: versioned curriculum content.
-    pub curriculum: cdb::Database,
     /// The curriculum bucket: question objects.
     pub curriculum_bucket: ObjectStore,
 }
@@ -83,21 +81,14 @@ pub struct AppConfig {
     pub google_oauth_secret: String,
     pub google_redirect_url: String,
     pub mock_auth: bool,
-    /// cDb connection string, as eDd's role. Names the database (`curriculum`), never a branch.
-    pub cdb_database_url: String,
     /// The curriculum bucket (`CURRICULUM_S3_*`).
     pub curriculum_bucket: S3Config,
     pub web_dir: String,
 }
 
-/// `name`'s value. A missing env var and an empty one are treated as being equivalent.
-fn env(name: &str) -> Option<String> {
-    var(name).ok().filter(|v| !v.is_empty())
-}
-
 /// `name`'s value. Panics when missing or empty.
 fn required_env(name: &str) -> String {
-    env(name).unwrap_or_else(|| {
+    runtime::var(name).unwrap_or_else(|| {
         tracing::error!("{name} not set");
         panic!("{name} required");
     })
@@ -105,7 +96,7 @@ fn required_env(name: &str) -> String {
 
 /// `name`'s value. When missing or empty: `default` if `mock_auth`, otherwise panics.
 fn env_or_mock_default(name: &str, default: &str, mock_auth: bool) -> String {
-    match env(name) {
+    match runtime::var(name) {
         Some(v) => v,
         None if mock_auth => default.to_string(),
         None => required_env(name),
@@ -143,19 +134,8 @@ impl AppConfig {
         );
 
         let edb_database_url = required_env("EDB_DATABASE_URL");
-        let cdb_database_url = required_env("CDB_DATABASE_URL");
 
-        let curriculum_bucket = match S3Config::from_env("CURRICULUM") {
-            Ok(config) => config,
-            Err(e) if mock_auth => {
-                tracing::warn!("{e}: curriculum bucket requests will fail");
-                mock_s3_config()
-            }
-            Err(e) => {
-                tracing::error!("{e}");
-                panic!("{e}");
-            }
-        };
+        let curriculum_bucket = curriculum_bucket_config(mock_auth);
 
         let web_dir = match var("WEB_DIR") {
             Ok(v) => {
@@ -172,9 +152,23 @@ impl AppConfig {
             google_oauth_secret,
             google_redirect_url,
             mock_auth,
-            cdb_database_url,
             curriculum_bucket,
             web_dir,
+        }
+    }
+}
+
+/// `CURRICULUM_S3_*`. When unset or invalid: [`mock_s3_config`] if `mock_auth`, otherwise panics.
+fn curriculum_bucket_config(mock_auth: bool) -> S3Config {
+    match S3Config::from_vars("CURRICULUM", runtime::var) {
+        Ok(config) => config,
+        Err(e) if mock_auth => {
+            tracing::warn!("{e}: curriculum bucket requests will fail");
+            mock_s3_config()
+        }
+        Err(e) => {
+            tracing::error!("{e}");
+            panic!("{e}");
         }
     }
 }

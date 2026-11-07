@@ -12,7 +12,6 @@ name = "server"
 [dependencies]
 axum = { workspace = true, features = ["multipart"] }
 axum-extra.workspace = true
-cdb.workspace = true
 edb.workspace = true
 http.workspace = true
 object-storage.workspace = true

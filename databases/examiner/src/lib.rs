@@ -18,7 +18,10 @@ mod edd;
 mod shared;
 
 pub use aapi::{Candidate, NewCandidate};
-pub use edd::{NewUser, Session, User};
+pub use edd::{
+    InvalidObjectHash, NewObject, NewUser, Object, ObjectHash, ObjectKey, ObjectKeyLock, Session,
+    User,
+};
 
 /// How long a migration statement waits for a lock
 pub const LOCK_TIMEOUT: Duration = Duration::from_secs(60);

@@ -22,19 +22,19 @@ import { LuFile, LuUpload } from "react-icons/lu";
 import { AppRoot } from "@/components/app-root";
 import { PageShell } from "@/components/page-shell";
 import { ProtectedRoute } from "@/components/protected-route";
-import { getObjects, type StoredObject, uploadObjects } from "@/utils/fetch";
-import { ACCEPT, KIND_NAMES, MAX_FILE_BYTES, MAX_FILES_PER_REQUEST } from "@/utils/objects";
+import { getObjects, type RecordedObject, uploadObjects } from "@/utils/fetch";
+import {
+  ACCEPT,
+  formatBytes,
+  KIND_NAMES,
+  MAX_FILE_BYTES,
+  MAX_FILES_PER_REQUEST,
+} from "@/utils/objects";
 
 const OBJECTS_QUERY_KEY = ["objects"];
 // Presigned URLs last 15 minutes: refetch before previews break. In a background tab, the interval
 // pauses and focus refetches once the list is stale.
 const OBJECTS_REFRESH_MS = 10 * 60 * 1000;
-
-export function formatBytes(bytes: number): string {
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KiB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MiB`;
-}
 
 function Uploader() {
   const queryClient = useQueryClient();
@@ -112,7 +112,7 @@ function Uploader() {
   );
 }
 
-function Preview({ file }: { file: StoredObject }) {
+function Preview({ file }: { file: RecordedObject }) {
   if (file.contentType.startsWith("image/")) {
     return <Image src={file.url} alt={file.fileName} maxH="full" maxW="full" fit="contain" />;
   }
@@ -126,7 +126,7 @@ function Preview({ file }: { file: StoredObject }) {
   );
 }
 
-function ObjectCard({ file }: { file: StoredObject }) {
+function ObjectCard({ file }: { file: RecordedObject }) {
   return (
     <Card.Root size="sm" overflow="hidden">
       <Center h="40" bg="bg.muted">

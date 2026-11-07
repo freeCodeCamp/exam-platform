@@ -1141,6 +1141,7 @@ version = "0.1.0"
 dependencies = [
  "sha2 0.11.1",
  "sqlx",
+ "thiserror 2.0.21",
  "time",
  "tokio",
  "uuid",
@@ -1211,7 +1212,6 @@ version = "0.5.0"
 dependencies = [
  "axum",
  "axum-extra",
- "cdb",
  "edb",
  "http 1.5.0",
  "oauth2",
@@ -2296,6 +2296,7 @@ dependencies = [
  "aws-sdk-s3",
  "bytes",
  "reqwest",
+ "runtime",
  "thiserror 2.0.21",
  "tokio",
  "url",

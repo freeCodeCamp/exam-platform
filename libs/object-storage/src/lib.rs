@@ -3,8 +3,11 @@
 //! across, keeping their keys.
 //!
 //! One [`ObjectStore`] per bucket. Each workload (curriculum, evidence) has its own bucket and
-//! credentials, under its own env prefix: [`S3Config::from_env`].
-use std::{env, fmt, time::Duration};
+//! credentials, under its own env prefix: [`S3Config::from_vars`].
+use std::{
+    fmt,
+    time::{Duration, SystemTime},
+};
 
 use aws_sdk_s3::{
     Client, Config,
@@ -23,15 +26,20 @@ use url::Url;
 #[derive(Clone, PartialEq, Eq)]
 pub struct S3Config {
     /// Scheme and host, no path, e.g. `https://nyc3.digitaloceanspaces.com`.
+    ///
+    /// [`aws_sdk_s3::config::Builder::endpoint_url`]
     pub endpoint: String,
-    /// SigV4 signing region. Providers without regions take any; DO Spaces signs as `us-east-1`,
-    /// R2 as `auto`.
+    /// SigV4 signing region. DO Spaces signs as `us-east-1`, R2 as `auto`.
+    ///
+    /// [`aws_sdk_s3::config::Builder::region`]
     pub region: String,
     pub bucket: String,
     pub access_key_id: String,
     pub secret_access_key: String,
     /// `true`: `<endpoint>/<bucket>/<key>` (MinIO, Garage). `false`: virtual-hosted,
     /// `<bucket>.<endpoint host>/<key>`.
+    ///
+    /// [`aws_sdk_s3::config::Builder::force_path_style`]
     pub force_path_style: bool,
 }
 
@@ -45,15 +53,15 @@ pub enum ConfigError {
 
 impl S3Config {
     /// Reads `<prefix>_S3_ENDPOINT`, `_REGION`, `_BUCKET`, `_ACCESS_KEY_ID`,
-    /// `_SECRET_ACCESS_KEY`, and optionally `_FORCE_PATH_STYLE` (`true`/`false`, default `false`).
-    /// Empty counts as unset.
-    pub fn from_env(prefix: &str) -> Result<Self, ConfigError> {
+    /// `_SECRET_ACCESS_KEY`, and optionally `_FORCE_PATH_STYLE` (`true`/`false`, default `false`)
+    /// through `var`, e.g. `runtime::var` for the environment. `var` decides what counts as unset.
+    pub fn from_vars(
+        prefix: &str,
+        var: impl Fn(&str) -> Option<String>,
+    ) -> Result<Self, ConfigError> {
         let get = |suffix: &str| {
             let name = format!("{prefix}_S3_{suffix}");
-            match env::var(&name) {
-                Ok(v) if !v.is_empty() => Ok(v),
-                _ => Err(ConfigError::Missing(name)),
-            }
+            var(&name).ok_or(ConfigError::Missing(name))
         };
         let force_path_style = match get("FORCE_PATH_STYLE") {
             Err(_) => false,
@@ -122,8 +130,17 @@ impl From<PresigningConfigError> for StorageError {
     }
 }
 
-/// One bucket. No `list`: keys live in a database, and listing is billed per call on some
-/// providers. No `delete`: callers own retention.
+/// One object, as [`ObjectStore::list`] reports it.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ListedObject {
+    pub key: String,
+    pub byte_size: i64,
+    pub last_modified: Option<SystemTime>,
+}
+
+/// One bucket. Keys live in a database: [`ObjectStore::list`] is for admin views reconciling the
+/// two, never request paths, as listing is paged and billed per call on some providers. Callers own
+/// retention: [`ObjectStore::delete`] is permanent unless the bucket keeps versions.
 #[derive(Debug, Clone)]
 pub struct ObjectStore {
     client: Client,
@@ -171,6 +188,45 @@ impl ObjectStore {
             .key(key)
             .content_type(content_type)
             .body(ByteStream::from(body))
+            .send()
+            .await?;
+        Ok(())
+    }
+
+    /// Every object in the bucket, in key order. One request per 1000 keys.
+    pub async fn list(&self) -> Result<Vec<ListedObject>, StorageError> {
+        let mut listed = Vec::new();
+        let mut continuation_token = None;
+        loop {
+            let page = self
+                .client
+                .list_objects_v2()
+                .bucket(&self.bucket)
+                .set_continuation_token(continuation_token)
+                .send()
+                .await?;
+            listed.extend(page.contents().iter().filter_map(|object| {
+                Some(ListedObject {
+                    key: object.key()?.to_owned(),
+                    byte_size: object.size().unwrap_or_default(),
+                    last_modified: object
+                        .last_modified()
+                        .and_then(|at| SystemTime::try_from(*at).ok()),
+                })
+            }));
+            continuation_token = page.next_continuation_token().map(str::to_owned);
+            if continuation_token.is_none() {
+                return Ok(listed);
+            }
+        }
+    }
+
+    /// Deletes `key`. Succeeds when `key` does not exist.
+    pub async fn delete(&self, key: &str) -> Result<(), StorageError> {
+        self.client
+            .delete_object()
+            .bucket(&self.bucket)
+            .key(key)
             .send()
             .await?;
         Ok(())
@@ -224,6 +280,35 @@ mod tests {
     }
 
     #[test]
+    fn reads_prefixed_vars() {
+        let vars = |name: &str| {
+            let value = match name {
+                "CURRICULUM_S3_ENDPOINT" => "https://example.com",
+                "CURRICULUM_S3_REGION" => "auto",
+                "CURRICULUM_S3_BUCKET" => "bucket",
+                "CURRICULUM_S3_ACCESS_KEY_ID" => "id",
+                "CURRICULUM_S3_SECRET_ACCESS_KEY" => "secret",
+                "CURRICULUM_S3_FORCE_PATH_STYLE" => "true",
+                _ => return None,
+            };
+            Some(value.to_owned())
+        };
+
+        let config = S3Config::from_vars("CURRICULUM", vars).expect("valid");
+
+        assert_eq!(config.bucket, "bucket");
+        assert!(config.force_path_style);
+        let missing = S3Config::from_vars("CURRICULUM", |name| {
+            (name != "CURRICULUM_S3_BUCKET")
+                .then(|| vars(name))
+                .flatten()
+        });
+        assert!(
+            matches!(missing, Err(ConfigError::Missing(name)) if name == "CURRICULUM_S3_BUCKET")
+        );
+    }
+
+    #[test]
     fn debug_hides_secret() {
         let debug = format!("{:?}", config("https://example.com"));
 
@@ -237,7 +322,7 @@ mod tests {
     /// must exist. Unset: the test passes without running.
     #[tokio::test]
     async fn round_trip() -> Result<(), StorageError> {
-        let config = match S3Config::from_env("TEST") {
+        let config = match S3Config::from_vars("TEST", runtime::var) {
             Ok(config) => config,
             Err(e) => {
                 eprintln!("{e}: skipping S3 round trip");
@@ -261,6 +346,16 @@ mod tests {
             Some("text/plain")
         );
         assert_eq!(response.text().await.expect("text body"), "hello");
+
+        let listed = store.list().await?;
+        let object = listed.iter().find(|o| o.key == key).expect("listed");
+        assert_eq!(object.byte_size, 5);
+        assert!(object.last_modified.is_some());
+
+        store.delete(&key).await?;
+        assert!(!store.list().await?.iter().any(|o| o.key == key));
+        // Deleting what is gone succeeds.
+        store.delete(&key).await?;
         Ok(())
     }
 }

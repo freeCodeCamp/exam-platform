@@ -68,14 +68,13 @@ eDd stores question objects (images, audio) in a private S3-compatible bucket. O
 
 Create these Komodo Variables before syncing/deploying the dashboard. Its `compose.yaml` requires every one, so a deploy without them fails:
 
-| Variable                                                           | Value                                                                    |
-| ------------------------------------------------------------------ | ------------------------------------------------------------------------ |
-| `EXAM_PLATFORM_EXAMINER_DASHBOARD_CDB_DATABASE_URL`                | `mysql://root:<cDb root password>@curriculum-db:3306/curriculum`; secret |
-| `EXAM_PLATFORM_EXAMINER_DASHBOARD_CURRICULUM_S3_ENDPOINT`          | `https://<region>.digitaloceanspaces.com`                                |
-| `EXAM_PLATFORM_EXAMINER_DASHBOARD_CURRICULUM_S3_REGION`            | `us-east-1`: Spaces signs every region with it                           |
-| `EXAM_PLATFORM_EXAMINER_DASHBOARD_CURRICULUM_S3_BUCKET`            | Bucket name                                                              |
-| `EXAM_PLATFORM_EXAMINER_DASHBOARD_CURRICULUM_S3_ACCESS_KEY_ID`     | Access key ID                                                            |
-| `EXAM_PLATFORM_EXAMINER_DASHBOARD_CURRICULUM_S3_SECRET_ACCESS_KEY` | Access key secret; mark secret                                           |
+| Variable                                                           | Value                                          |
+| ------------------------------------------------------------------ | ---------------------------------------------- |
+| `EXAM_PLATFORM_EXAMINER_DASHBOARD_CURRICULUM_S3_ENDPOINT`          | `https://<region>.digitaloceanspaces.com`      |
+| `EXAM_PLATFORM_EXAMINER_DASHBOARD_CURRICULUM_S3_REGION`            | `us-east-1`: Spaces signs every region with it |
+| `EXAM_PLATFORM_EXAMINER_DASHBOARD_CURRICULUM_S3_BUCKET`            | Bucket name                                    |
+| `EXAM_PLATFORM_EXAMINER_DASHBOARD_CURRICULUM_S3_ACCESS_KEY_ID`     | Access key ID                                  |
+| `EXAM_PLATFORM_EXAMINER_DASHBOARD_CURRICULUM_S3_SECRET_ACCESS_KEY` | Access key secret; mark secret                 |
 
 Other providers: see [Environment Variables](./environment-variables.md).
 

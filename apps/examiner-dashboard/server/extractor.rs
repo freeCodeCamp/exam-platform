@@ -76,7 +76,6 @@ mod tests {
             google_oauth_secret: "secret".to_string(),
             google_redirect_url: "http://127.0.0.1:13002/auth/google/callback".to_string(),
             mock_auth: false,
-            cdb_database_url: "mysql://unused@127.0.0.1:1/unused".to_string(),
             curriculum_bucket: mock_s3_config(),
             web_dir: "dist".to_string(),
         };
@@ -88,7 +87,6 @@ mod tests {
             google_client: google_client(&config),
             pending_logins: PendingLogins::default(),
             cookie_key: Key::from(config.cookie_key.as_bytes()),
-            curriculum: cdb::Database::connect_lazy(&config.cdb_database_url).expect("valid URL"),
             curriculum_bucket: ObjectStore::new(&config.curriculum_bucket),
             config,
         }

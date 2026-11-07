@@ -21,10 +21,6 @@ pub async fn app(config: &AppConfig) -> Router {
         .await
         .expect("failed to connect to eDb");
 
-    let curriculum = cdb::Database::connect(&config.cdb_database_url)
-        .await
-        .expect("failed to connect to cDb");
-
     let server_state = ServerState {
         config: config.clone(),
         database,
@@ -32,13 +28,13 @@ pub async fn app(config: &AppConfig) -> Router {
         google_client,
         pending_logins: PendingLogins::default(),
         cookie_key: Key::from(config.cookie_key.as_bytes()),
-        curriculum,
         curriculum_bucket: ObjectStore::new(&config.curriculum_bucket),
     };
 
     let api = Router::new()
         .nest("/auth", routes::auth::router(config.mock_auth))
         .nest("/api/objects", routes::objects::router())
+        .nest("/api/object-store", routes::object_store::router())
         .with_state(server_state);
 
     let web_dir_path = PathBuf::from(&config.web_dir);

@@ -35,3 +35,9 @@ export const ACCEPT = OBJECT_KINDS.flatMap((kind) => [...kind.contentTypes, ...k
 export const KIND_NAMES = new Intl.ListFormat("en", { type: "disjunction" }).format(
   OBJECT_KINDS.map((kind) => kind.name),
 );
+
+export function formatBytes(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KiB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MiB`;
+}

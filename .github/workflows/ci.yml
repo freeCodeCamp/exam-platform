@@ -145,13 +145,11 @@ jobs:
       - run: cargo run -p edb --bin edb-migrate --locked
         env:
           EDB_MIGRATOR_URL: postgres://edb_migrator:edb_migrator@127.0.0.1:5432/examiner
-      - run: cargo install sqlx-cli --version 0.9.0 --locked --no-default-features --features rustls,postgres,mysql,sqlx-toml
+      - run: cargo install sqlx-cli --version 0.9.0 --locked --no-default-features --features rustls,postgres,sqlx-toml
       - run: cargo sqlx prepare --check
         working-directory: databases/examiner
         env:
           EDB_MIGRATOR_URL: postgres://edb_migrator:edb_migrator@127.0.0.1:5432/examiner
-      - run: cargo sqlx prepare --check
-        working-directory: databases/curriculum
 
   desktop:
     name: Desktop Rust

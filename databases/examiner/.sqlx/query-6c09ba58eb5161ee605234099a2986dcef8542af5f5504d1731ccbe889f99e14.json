@@ -1,0 +1,98 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT sha256 AS \"sha256: ObjectHash\", object_key AS \"object_key: ObjectKey\",\n                content_type, byte_size, file_name, uploaded_by, created_at\n            FROM edd.objects ORDER BY created_at DESC, sha256",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "sha256: ObjectHash",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "edd.objects",
+            "name": "sha256"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "object_key: ObjectKey",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "edd.objects",
+            "name": "object_key"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "content_type",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "edd.objects",
+            "name": "content_type"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "byte_size",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "edd.objects",
+            "name": "byte_size"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "file_name",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "edd.objects",
+            "name": "file_name"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "uploaded_by",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "edd.objects",
+            "name": "uploaded_by"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "created_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "edd.objects",
+            "name": "created_at"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "6c09ba58eb5161ee605234099a2986dcef8542af5f5504d1731ccbe889f99e14"
+}
