@@ -1,0 +1,13 @@
+---
+import Base from "@/layouts/base.astro";
+import { Exam } from "@/views/exam";
+import { PLACEHOLDER } from "@/utils/routes";
+
+export function getStaticPaths() {
+  return [{ params: { exam_id: PLACEHOLDER } }];
+}
+---
+
+<Base title="Exam">
+  <Exam client:load />
+</Base>

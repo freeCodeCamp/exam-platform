@@ -1,14 +1,8 @@
 ---
+import Base from "@/layouts/base.astro";
+import { Home } from "@/views/home";
 ---
 
-<html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Exam Platform</title>
-    <script is:inline src="/config.js"></script>
-  </head>
-  <body>
-    <h1>Web App</h1>
-  </body>
-</html>
+<Base>
+  <Home client:load />
+</Base>

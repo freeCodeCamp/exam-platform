@@ -3,6 +3,7 @@ import { fileURLToPath } from "node:url";
 import type { AstroIntegration } from "astro";
 import { defineConfig } from "astro/config";
 import react from "@astrojs/react";
+import { DYNAMIC_ROUTES, matchPath, placeholderPath } from "./src/utils/routes";
 
 // Dev stand-in for the image's Caddyfile, which serves /config.js from the container's env.
 function runtimeConfig(): AstroIntegration {
@@ -23,9 +24,25 @@ function runtimeConfig(): AstroIntegration {
   };
 }
 
+function dynamicRoutes(): AstroIntegration {
+  return {
+    name: "dynamic-routes",
+    hooks: {
+      "astro:server:setup": ({ server }) => {
+        server.middlewares.use((req, _res, next) => {
+          const url = new URL(req.url ?? "/", "http://localhost");
+          const pattern = DYNAMIC_ROUTES.find((p) => matchPath(p, url.pathname));
+          if (pattern) req.url = placeholderPath(pattern) + url.search;
+          next();
+        });
+      },
+    },
+  };
+}
+
 // Static MPA: every page prerenders to HTML; React islands hydrate where interactive.
 // Origins are runtime config (/config.js), not build env: one image serves every environment.
 export default defineConfig({
   output: "static",
-  integrations: [react(), runtimeConfig()],
+  integrations: [react(), runtimeConfig(), dynamicRoutes()],
 });

@@ -1,0 +1,13 @@
+---
+import Base from "@/layouts/base.astro";
+import { Attempt } from "@/views/attempt";
+import { PLACEHOLDER } from "@/utils/routes";
+
+export function getStaticPaths() {
+  return [{ params: { attempt_id: PLACEHOLDER } }];
+}
+---
+
+<Base title="Attempt">
+  <Attempt client:load />
+</Base>

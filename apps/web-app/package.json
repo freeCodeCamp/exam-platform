@@ -6,24 +6,38 @@
   "scripts": {
     "dev": "astro dev --host 127.0.0.1 --port 13003",
     "build": "astro check && astro build",
+    "check": "astro check",
     "fmt": "oxfmt",
+    "lint": "oxlint",
     "preview": "astro preview --host 127.0.0.1 --port 13003",
-    "check": "astro check"
+    "test": "vitest"
   },
   "dependencies": {
     "@astrojs/react": "catalog:astro",
+    "@chakra-ui/react": "catalog:astro",
+    "@emotion/react": "catalog:astro",
     "@tanstack/react-query": "catalog:",
     "astro": "catalog:astro",
+    "next-themes": "catalog:astro",
     "react": "catalog:",
-    "react-dom": "catalog:"
+    "react-dom": "catalog:",
+    "react-icons": "catalog:astro"
   },
   "devDependencies": {
     "@astrojs/check": "catalog:astro",
     "@tanstack/react-query-devtools": "catalog:",
+    "@testing-library/dom": "catalog:astro",
+    "@testing-library/jest-dom": "catalog:astro",
+    "@testing-library/react": "catalog:astro",
     "@types/bun": "catalog:",
     "@types/react": "catalog:",
     "@types/react-dom": "catalog:",
+    "jsdom": "catalog:astro",
     "oxfmt": "catalog:",
-    "typescript": "catalog:astro"
+    "oxlint": "catalog:",
+    "oxlint-config-presets": "catalog:",
+    "oxlint-tsgolint": "catalog:",
+    "typescript": "catalog:astro",
+    "vitest": "catalog:"
   }
 }
