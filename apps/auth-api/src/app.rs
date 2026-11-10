@@ -21,7 +21,7 @@ pub async fn app(config: &AppConfig) -> Router {
 
 pub fn router(server_state: ServerState) -> Router {
     let cors = CorsLayer::new()
-        .allow_origin([server_state.config.web_app_origin.clone()])
+        .allow_origin(server_state.config.web_app_origins.clone())
         .allow_methods([Method::GET, Method::POST, Method::DELETE])
         .allow_headers([CONTENT_TYPE])
         .allow_credentials(true);
@@ -49,7 +49,7 @@ mod tests {
     use tower::ServiceExt;
 
     use super::*;
-    use crate::testing::{WEB_APP_ORIGIN, server_state};
+    use crate::testing::{WEB_APP_ORIGINS, server_state};
 
     fn preflight(origin: &str) -> Request<Body> {
         Request::options("/auth/session")
@@ -69,21 +69,23 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn allows_credentialed_requests_from_the_web_app() {
-        let response = router(server_state(false))
-            .oneshot(preflight(WEB_APP_ORIGIN))
-            .await
-            .expect("infallible");
+    async fn allows_credentialed_requests_from_every_web_app_origin() {
+        for origin in WEB_APP_ORIGINS {
+            let response = router(server_state(false))
+                .oneshot(preflight(origin))
+                .await
+                .expect("infallible");
 
-        let headers = response.headers();
-        assert_eq!(
-            headers.get(ACCESS_CONTROL_ALLOW_ORIGIN),
-            Some(&HeaderValue::from_static(WEB_APP_ORIGIN))
-        );
-        assert_eq!(
-            headers.get(ACCESS_CONTROL_ALLOW_CREDENTIALS),
-            Some(&HeaderValue::from_static("true"))
-        );
+            let headers = response.headers();
+            assert_eq!(
+                headers.get(ACCESS_CONTROL_ALLOW_ORIGIN),
+                Some(&HeaderValue::from_static(origin))
+            );
+            assert_eq!(
+                headers.get(ACCESS_CONTROL_ALLOW_CREDENTIALS),
+                Some(&HeaderValue::from_static("true"))
+            );
+        }
     }
 
     #[tokio::test]

@@ -18,7 +18,7 @@ services:
       RUST_LOG: ${RUST_LOG:-info}
       EDB_DATABASE_URL: ${EDB_DATABASE_URL:?set EDB_DATABASE_URL}
       COOKIE_KEY: ${COOKIE_KEY:?set COOKIE_KEY}
-      WEB_APP_ORIGIN: ${WEB_APP_ORIGIN:?set WEB_APP_ORIGIN}
+      WEB_APP_ORIGINS: ${WEB_APP_ORIGINS:?set WEB_APP_ORIGINS}
     networks:
       platform:
         aliases: [auth-api]

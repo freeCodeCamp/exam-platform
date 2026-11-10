@@ -23,7 +23,26 @@ pub struct AppConfig {
     pub cookie_key: String,
     pub edb_database_url: String,
     pub mock_auth: bool,
-    pub web_app_origin: HeaderValue,
+    pub web_app_origins: Vec<HeaderValue>,
+}
+
+fn parse_origins(value: &str) -> Result<Vec<HeaderValue>, String> {
+    let origins = value
+        .split(',')
+        .map(str::trim)
+        .filter(|origin| !origin.is_empty())
+        .map(|origin| {
+            if origin.ends_with('/') {
+                return Err(format!("{origin} must not end with /"));
+            }
+            HeaderValue::from_str(origin).map_err(|e| format!("{origin}: {e}"))
+        })
+        .collect::<Result<Vec<_>, _>>()?;
+
+    if origins.is_empty() {
+        return Err("no origins".to_string());
+    }
+    Ok(origins)
 }
 
 fn required_env(name: &str) -> String {
@@ -65,18 +84,50 @@ impl AppConfig {
 
         let edb_database_url = required_env("EDB_DATABASE_URL");
 
-        let web_app_origin =
-            env_or_mock_default("WEB_APP_ORIGIN", "http://127.0.0.1:13003", mock_auth);
-        let web_app_origin = HeaderValue::from_str(&web_app_origin).unwrap_or_else(|e| {
-            tracing::error!("WEB_APP_ORIGIN invalid: {e}");
-            panic!("WEB_APP_ORIGIN invalid: {e}");
+        let web_app_origins = env_or_mock_default(
+            "WEB_APP_ORIGINS",
+            "http://127.0.0.1:13003,http://localhost:13003",
+            mock_auth,
+        );
+        let web_app_origins = parse_origins(&web_app_origins).unwrap_or_else(|e| {
+            tracing::error!("WEB_APP_ORIGINS invalid: {e}");
+            panic!("WEB_APP_ORIGINS invalid: {e}");
         });
 
         Self {
             cookie_key,
             edb_database_url,
             mock_auth,
-            web_app_origin,
+            web_app_origins,
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn parses_comma_separated_origins() {
+        let origins =
+            parse_origins("http://127.0.0.1:13003, http://localhost:13003,").expect("valid");
+
+        assert_eq!(
+            origins,
+            [
+                HeaderValue::from_static("http://127.0.0.1:13003"),
+                HeaderValue::from_static("http://localhost:13003"),
+            ]
+        );
+    }
+
+    #[test]
+    fn rejects_empty_origins() {
+        assert!(parse_origins(" , ").is_err());
+    }
+
+    #[test]
+    fn rejects_origins_with_a_path() {
+        assert!(parse_origins("https://web-app.freecodecamp.dev/").is_err());
     }
 }
