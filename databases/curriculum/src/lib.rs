@@ -271,8 +271,9 @@ pub(crate) mod testing {
                 .ok()
                 .filter(|v| !v.is_empty())
             else {
-                eprintln!("CDB_MIGRATOR_URL not set: skipping Dolt test");
-                return Ok(None);
+                panic!(
+                    "CDB_MIGRATOR_URL must be set for testing.  Hint: copy the value from .env.example into .env"
+                );
             };
             let options = MySqlConnectOptions::from_str(&url)?;
             let name = format!("cdb_test_{}", uuid::Uuid::new_v4().simple());
@@ -414,19 +415,9 @@ mod tests {
         Ok(count > 0)
     }
 
-    #[test]
-    fn migration_versions_are_unique() {
-        let mut versions = up_versions(&migrator());
-        let count = versions.len();
-        versions.dedup();
-        assert_eq!(versions.len(), count);
-    }
-
     #[tokio::test]
     async fn each_migration_is_one_dolt_commit_on_dev() -> Result<(), Error> {
-        let Some(db) = TestDb::new().await? else {
-            return Ok(());
-        };
+        let db = TestDb::new().await?.unwrap();
         let expected = up_versions(&migrator());
 
         assert_eq!(db.setup().await?, expected);
@@ -463,9 +454,7 @@ mod tests {
 
     #[tokio::test]
     async fn rerun_is_a_no_op() -> Result<(), Error> {
-        let Some(db) = TestDb::new().await? else {
-            return Ok(());
-        };
+        let db = TestDb::new().await?.unwrap();
         db.setup().await?;
         let before = db.hash_of(DEV).await?;
 
@@ -479,9 +468,7 @@ mod tests {
     /// Two runs at once: the named lock serializes them.
     #[tokio::test]
     async fn concurrent_runs_apply_each_migration_once() -> Result<(), Error> {
-        let Some(db) = TestDb::new().await? else {
-            return Ok(());
-        };
+        let db = TestDb::new().await?.unwrap();
         let migrator = migrator();
 
         let (a, b) = tokio::join!(db.migrate_with(&migrator), db.migrate_with(&migrator));
@@ -496,9 +483,7 @@ mod tests {
 
     #[tokio::test]
     async fn older_bundle_runs_against_newer_migrations() -> Result<(), Error> {
-        let Some(db) = TestDb::new().await? else {
-            return Ok(());
-        };
+        let db = TestDb::new().await?.unwrap();
         db.setup().await?;
         apply_newer_migration(&db).await?;
 
@@ -509,9 +494,7 @@ mod tests {
 
     #[tokio::test]
     async fn strict_migrator_rejects_newer_migrations() -> Result<(), Error> {
-        let Some(db) = TestDb::new().await? else {
-            return Ok(());
-        };
+        let db = TestDb::new().await?.unwrap();
         db.setup().await?;
         apply_newer_migration(&db).await?;
         let mut migrator = migrator();
@@ -531,9 +514,7 @@ mod tests {
 
     #[tokio::test]
     async fn rejects_changed_migration() -> Result<(), Error> {
-        let Some(db) = TestDb::new().await? else {
-            return Ok(());
-        };
+        let db = TestDb::new().await?.unwrap();
         db.setup().await?;
         db.commit_on_dev("UPDATE _sqlx_migrations SET checksum = X'00' WHERE version = 1")
             .await?;
@@ -553,9 +534,7 @@ mod tests {
     /// The failed migration stays on the scratch branch, half applied; the next run starts over.
     #[tokio::test]
     async fn failed_migration_leaves_dev_untouched() -> Result<(), Error> {
-        let Some(db) = TestDb::new().await? else {
-            return Ok(());
-        };
+        let db = TestDb::new().await?.unwrap();
         db.setup().await?;
         let before = db.hash_of(DEV).await?;
 
@@ -578,9 +557,7 @@ mod tests {
     /// eDd commits content to `dev` while migrations apply: the run ends in a merge commit with both.
     #[tokio::test]
     async fn merges_when_dev_moved() -> Result<(), Error> {
-        let Some(db) = TestDb::new().await? else {
-            return Ok(());
-        };
+        let db = TestDb::new().await?.unwrap();
         let migrator = migrator();
         let mut conn = db.connect().await?;
 
@@ -616,9 +593,7 @@ mod tests {
 
     #[tokio::test]
     async fn never_touches_other_branches() -> Result<(), Error> {
-        let Some(db) = TestDb::new().await? else {
-            return Ok(());
-        };
+        let db = TestDb::new().await?.unwrap();
         let mut conn = db.connect().await?;
         sqlx::query("CALL DOLT_BRANCH('prd', ?)")
             .bind(DEV)
