@@ -7,6 +7,8 @@
 //! Env: `CDB_MIGRATOR_URL`, naming the database (`.../curriculum`), never a `db/branch` revision.
 use std::{process::ExitCode, time::Duration};
 
+use cdb::migrations;
+
 /// Bounds the whole run: waiting for another run's lock, then applying and merging. The deploy
 /// Action's MIGRATE_SECONDS must stay above this plus the image pull. A run cut short ends its
 /// session, which releases the lock; anything it left is on the scratch branch, which the next run
@@ -24,13 +26,13 @@ async fn main() -> ExitCode {
         return ExitCode::from(2);
     };
 
-    match tokio::time::timeout(TIMEOUT, cdb::migrate(&url)).await {
+    match tokio::time::timeout(TIMEOUT, migrations::migrate(&url)).await {
         Ok(Ok(applied)) if applied.is_empty() => {
             println!("cDb up to date");
             ExitCode::SUCCESS
         }
         Ok(Ok(applied)) => {
-            println!("cDb migrations applied to {}: {applied:?}", cdb::DEV);
+            println!("cDb migrations applied to {}: {applied:?}", migrations::DEV);
             ExitCode::SUCCESS
         }
         Ok(Err(err)) => {
