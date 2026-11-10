@@ -2,9 +2,7 @@ mod common;
 
 use std::borrow::Cow;
 
-use cdb::migrations::{
-    self, DEV, Error, apply_on_scratch, drop_scratch, merge_into_dev, migrator,
-};
+use cdb::migrations::{self, DEV, Error, apply_on_scratch, drop_scratch, merge_into_dev, migrator};
 use common::TestDb;
 use sqlx::{
     ConnectOptions, Connection,
@@ -252,10 +250,8 @@ async fn merges_when_dev_moved() -> Result<(), Error> {
     let mut conn = db.connect().await?;
 
     let applied = apply_on_scratch(&mut conn, &migrator).await?;
-    db.commit_on_dev(
-        "CREATE TABLE content (id int PRIMARY KEY); INSERT INTO content VALUES (1)",
-    )
-    .await?;
+    db.commit_on_dev("CREATE TABLE content (id int PRIMARY KEY); INSERT INTO content VALUES (1)")
+        .await?;
     merge_into_dev(&mut conn, &applied).await?;
     drop_scratch(&mut conn).await?;
 

@@ -29,11 +29,10 @@ impl TestDb {
         };
         // The server's `init.defaultbranch` may not be `dev`.
         let mut conn = db.connect().await?;
-        let has_dev: i64 =
-            sqlx::query_scalar("SELECT COUNT(*) FROM dolt_branches WHERE name = ?")
-                .bind("dev")
-                .fetch_one(&mut conn)
-                .await?;
+        let has_dev: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM dolt_branches WHERE name = ?")
+            .bind("dev")
+            .fetch_one(&mut conn)
+            .await?;
         if has_dev == 0 {
             sqlx::query("CALL DOLT_BRANCH(?)")
                 .bind("dev")
