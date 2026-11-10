@@ -6,12 +6,13 @@ import {
   Heading,
   HStack,
   IconButton,
+  NativeSelect,
   Stack,
   Text,
   VisuallyHidden,
 } from "@chakra-ui/react";
 import { useMutation } from "@tanstack/react-query";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import {
   LuCake,
   LuCheck,
@@ -38,17 +39,28 @@ import { useAuth } from "@/contexts/auth";
 import { deleteSession, type SessionUser } from "@/utils/fetch";
 import { initials } from "@/utils/initials";
 import { redirect } from "@/utils/navigate";
+import { countries } from "@/utils/countries";
 import { buildPath, currentRouteParams, ROUTES } from "@/utils/routes";
 
 type Visibility = "public" | "private";
 
+const MIN_AGE_YEARS = 18;
+
+function latestDateOfBirth() {
+  const date = new Date();
+  date.setFullYear(date.getFullYear() - MIN_AGE_YEARS);
+  return date.toISOString().slice(0, 10);
+}
+
 function ProfileForm({ user }: { user: SessionUser }) {
   const { colorMode, setColorMode } = useColorMode();
   const [name, setName] = useState(user.name);
-  const [age, setAge] = useState("");
+  const [dateOfBirth, setDateOfBirth] = useState("");
   const [location, setLocation] = useState("");
+  const countryOptions = useMemo(() => countries(), []);
+  const maxDateOfBirth = useMemo(() => latestDateOfBirth(), []);
   const [document, setDocument] = useState<string | null>(null);
-  const [visibility, setVisibility] = useState<Visibility>("public");
+  const [visibility, setVisibility] = useState<Visibility>("private");
 
   return (
     <Stack asChild gap="4" p="7" bg="bg.panel" borderWidth="1px" rounded="l3">
@@ -65,26 +77,56 @@ function ProfileForm({ user }: { user: SessionUser }) {
         <Flex wrap="wrap" gap="4">
           <Box flex="1 1 140px">
             <IconField
-              id="age"
-              label="Age"
+              id="date-of-birth"
+              label="Date of birth"
               icon={LuCake}
-              type="number"
-              min={13}
-              placeholder="Age"
-              value={age}
-              onChange={(e) => setAge(e.target.value)}
+              type="date"
+              autoComplete="bday"
+              max={maxDateOfBirth}
+              value={dateOfBirth}
+              onChange={(e) => setDateOfBirth(e.target.value)}
             />
           </Box>
           <Box flex="3 1 280px">
-            <IconField
-              id="location"
-              label="Location"
-              icon={LuMapPin}
-              autoComplete="country-name"
-              placeholder="Location"
-              value={location}
-              onChange={(e) => setLocation(e.target.value)}
-            />
+            <NativeSelect.Root position="relative">
+              <Center
+                asChild
+                position="absolute"
+                insetStart="0"
+                insetBlock="0"
+                w="12"
+                zIndex="1"
+                color="fg.muted"
+                title="Location"
+              >
+                <label htmlFor="location">
+                  <LuMapPin size="20" aria-hidden />
+                  <VisuallyHidden>Location</VisuallyHidden>
+                </label>
+              </Center>
+              <NativeSelect.Field
+                id="location"
+                h="52px"
+                ps="12"
+                bg="bg.muted"
+                borderColor="border"
+                fontSize="md"
+                autoComplete="country"
+                color={location ? "fg" : "fg.muted"}
+                value={location}
+                onChange={(e) => setLocation(e.target.value)}
+              >
+                <option value="" disabled>
+                  Location
+                </option>
+                {countryOptions.map(({ code, name }) => (
+                  <option key={code} value={code}>
+                    {name}
+                  </option>
+                ))}
+              </NativeSelect.Field>
+              <NativeSelect.Indicator />
+            </NativeSelect.Root>
           </Box>
         </Flex>
 
