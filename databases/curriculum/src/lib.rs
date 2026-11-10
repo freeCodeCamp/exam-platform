@@ -271,7 +271,9 @@ pub(crate) mod testing {
                 .ok()
                 .filter(|v| !v.is_empty())
             else {
-                panic!("CDB_MIGRATOR_URL must be set for testing.  Hint: copy the value from .env.example into .env");
+                panic!(
+                    "CDB_MIGRATOR_URL must be set for testing.  Hint: copy the value from .env.example into .env"
+                );
             };
             let options = MySqlConnectOptions::from_str(&url)?;
             let name = format!("cdb_test_{}", uuid::Uuid::new_v4().simple());
