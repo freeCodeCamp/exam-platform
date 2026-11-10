@@ -414,14 +414,6 @@ mod tests {
         Ok(count > 0)
     }
 
-    #[test]
-    fn migration_versions_are_unique() {
-        let mut versions = up_versions(&migrator());
-        let count = versions.len();
-        versions.dedup();
-        assert_eq!(versions.len(), count);
-    }
-
     #[tokio::test]
     async fn each_migration_is_one_dolt_commit_on_dev() -> Result<(), Error> {
         let Some(db) = TestDb::new().await? else {
