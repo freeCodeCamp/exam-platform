@@ -30,6 +30,19 @@ impl Database {
         .await
     }
 
+    pub async fn find_candidate_by_id(
+        &self,
+        candidate_id: Uuid,
+    ) -> Result<Option<Candidate>, sqlx::Error> {
+        sqlx::query_as!(
+            Candidate,
+            "SELECT id, name, email FROM aapi.candidates WHERE id = $1",
+            candidate_id
+        )
+        .fetch_optional(&self.pool)
+        .await
+    }
+
     /// aAPI only. Inserts `candidate`, returning it with its new id.
     pub async fn insert_candidate(
         &self,
@@ -73,6 +86,22 @@ mod tests {
             .await?;
 
         assert_eq!(found.map(|c| c.id), Some(candidate.id));
+        Ok(())
+    }
+
+    #[sqlx::test(migrations = false)]
+    async fn finds_candidate_by_id(pool: PgPool) -> sqlx::Result<()> {
+        setup(&pool).await?;
+        let db = database_as(&pool, Role::Aapi).await?;
+        let candidate = db
+            .insert_candidate(new_candidate("camper@freecodecamp.org"))
+            .await?;
+
+        let found = db.find_candidate_by_id(candidate.id).await?;
+        let missing = db.find_candidate_by_id(Uuid::nil()).await?;
+
+        assert_eq!(found.map(|c| c.email), Some(candidate.email));
+        assert!(missing.is_none());
         Ok(())
     }
 

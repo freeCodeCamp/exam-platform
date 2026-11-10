@@ -1,7 +1,11 @@
 //! aAPI: candidate identity and the attempt path. The only application candidate devices reach.
 mod app;
 mod config;
+mod error;
+mod extractor;
 mod routes;
+#[cfg(test)]
+mod testing;
 
 use runtime::{Exit, ServerConfig};
 

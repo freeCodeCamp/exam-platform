@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM aapi.sessions WHERE candidate_id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "92edb8f2b2dd52196dee922d8be9973a1840b79b596fcf89fec7cf99575e2219"
+}

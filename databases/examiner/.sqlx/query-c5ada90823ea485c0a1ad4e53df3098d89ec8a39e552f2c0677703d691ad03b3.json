@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "WITH expired AS (DELETE FROM aapi.sessions WHERE expires_at <= now())\n            INSERT INTO aapi.sessions (id_hash, candidate_id, expires_at) VALUES ($1, $2, $3)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Bytea",
+        "Uuid",
+        "Timestamptz"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "c5ada90823ea485c0a1ad4e53df3098d89ec8a39e552f2c0677703d691ad03b3"
+}

@@ -11,10 +11,12 @@ COPY libs libs
 COPY databases/curriculum databases/curriculum
 COPY databases/examiner databases/examiner
 ENV SQLX_OFFLINE=true
+ARG CARGO_PROFILE=release
 RUN --mount=type=cache,target=/usr/local/cargo/registry \
     --mount=type=cache,target=/src/target \
-    cargo build --locked --release -p auth-api -p edb \
-    && cp target/release/auth-api target/release/edb-migrate /usr/local/bin/
+    cargo build --locked --profile "$CARGO_PROFILE" -p auth-api -p edb \
+    && out="target/$([ "$CARGO_PROFILE" = dev ] && echo debug || echo "$CARGO_PROFILE")" \
+    && cp "$out/auth-api" "$out/edb-migrate" /usr/local/bin/
 
 FROM debian:trixie-slim
 RUN apt-get update \
