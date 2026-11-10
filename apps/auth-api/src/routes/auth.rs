@@ -19,7 +19,7 @@ use tracing::instrument;
 
 use crate::{config::ServerState, error::Error, extractor::AuthCandidate};
 
-pub const SESSION_COOKIE: &str = "sid";
+pub const SESSION_COOKIE: &str = "candidate_sid";
 const SESSION_TTL: Duration = Duration::from_secs(60 * 60);
 
 pub fn router(mock_auth: bool) -> Router<ServerState> {
