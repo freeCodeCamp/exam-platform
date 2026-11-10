@@ -21,23 +21,23 @@ afterEach(() => {
   window.history.replaceState(null, "", "/");
 });
 
-const views: [string, ComponentType, string][] = [
-  ["Exams", Exams, "/exams"],
-  ["Exam", Exam, "/exams/e1"],
-  ["Profile", Profile, "/users/u1/profile"],
-  ["Certifications", Certifications, "/users/u1/certifications"],
-  ["Certification", Certification, "/users/u1/certifications/c1"],
-  ["Attempt", Attempt, "/attempts/a1"],
+const views: [string, ComponentType, string, string][] = [
+  ["Exams", Exams, "/exams", "No exams"],
+  ["Exam", Exam, "/exams/e1", "Exam not found"],
+  ["Profile", Profile, "/users/camperbot-id/profile", "Profile"],
+  ["Certifications", Certifications, "/users/u1/certifications", "No certifications"],
+  ["Certification", Certification, "/users/u1/certifications/c1", "Certification not found"],
+  ["Attempt", Attempt, "/attempts/a1", "Attempt not found"],
 ];
 
-describe.each(views)("%s", (title, View, path) => {
+describe.each(views)("%s", (_, View, path, text) => {
   test("renders for logged in users", async () => {
     window.history.replaceState(null, "", path);
     mockSession(camperbot);
 
     const screen = render(<View />);
 
-    expect(await screen.findByRole("heading", { name: title })).toBeInTheDocument();
+    expect(await screen.findAllByText(text)).not.toHaveLength(0);
     expect(redirect).not.toHaveBeenCalled();
   });
 
@@ -48,6 +48,6 @@ describe.each(views)("%s", (title, View, path) => {
     const screen = render(<View />);
 
     await vi.waitFor(() => expect(redirect).toHaveBeenCalledWith("/login"));
-    expect(screen.queryByRole("heading", { name: title })).not.toBeInTheDocument();
+    expect(screen.queryAllByText(text)).toHaveLength(0);
   });
 });

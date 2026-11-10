@@ -52,3 +52,21 @@ export async function getSessionUser(): Promise<SessionUser | null> {
 
   return (await res.json()) as SessionUser;
 }
+
+export async function postDevLogin(user: { name: string; email: string }): Promise<SessionUser> {
+  const res = await authApiFetch("/auth/dev/login", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(user),
+  });
+
+  if (!res.ok) {
+    throw await responseError(res);
+  }
+
+  return (await res.json()) as SessionUser;
+}
+
+export async function deleteSession(): Promise<void> {
+  await authorizedFetch("/auth/logout", { method: "DELETE" });
+}

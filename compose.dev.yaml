@@ -142,7 +142,7 @@ services:
       ENVIRONMENT: development
       MOCK_AUTH: "true"
       LISTEN_ADDR: 0.0.0.0:13001
-      WEB_APP_ORIGIN: http://127.0.0.1:13003
+      WEB_APP_ORIGINS: http://127.0.0.1:13003,http://localhost:13003
       EDB_DATABASE_URL: postgres://aapi:${EDB_AAPI_PASSWORD}@examiner-db:5432/examiner
     depends_on:
       migrate-edb-aapi: { condition: service_completed_successfully }
