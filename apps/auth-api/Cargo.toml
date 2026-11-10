@@ -7,10 +7,21 @@ publish.workspace = true
 
 [dependencies]
 axum.workspace = true
+axum-extra.workspace = true
 edb.workspace = true
-tokio.workspace = true
-tracing.workspace = true
+getrandom.workspace = true
+http.workspace = true
 runtime.workspace = true
+serde.workspace = true
+sqlx.workspace = true
+thiserror.workspace = true
+time.workspace = true
+tokio.workspace = true
+tower-http = { workspace = true, features = ["cors"] }
+tracing.workspace = true
+
+[dev-dependencies]
+tower = { version = "0.5.3", features = ["util"] }
 
 [lints]
 workspace = true

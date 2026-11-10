@@ -22,6 +22,18 @@
 	handle {
 		root * /srv
 		encode zstd gzip
+
+		@exam path_regexp ^/exams/[^/]+/?$
+		rewrite @exam /exams/_/index.html
+		@profile path_regexp ^/users/[^/]+/profile/?$
+		rewrite @profile /users/_/profile/index.html
+		@certifications path_regexp ^/users/[^/]+/certifications/?$
+		rewrite @certifications /users/_/certifications/index.html
+		@certification path_regexp ^/users/[^/]+/certifications/[^/]+/?$
+		rewrite @certification /users/_/certifications/_/index.html
+		@attempt path_regexp ^/attempts/[^/]+/?$
+		rewrite @attempt /attempts/_/index.html
+
 		# Content-hashed by Astro: safe to cache forever.
 		header /_astro/* Cache-Control "public, max-age=31536000, immutable"
 		file_server

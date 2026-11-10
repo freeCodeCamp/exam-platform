@@ -16,6 +16,7 @@ x-edd-build: &edd-build
 x-aapi-build: &aapi-build
   context: .
   dockerfile: apps/auth-api/Dockerfile
+  args: { CARGO_PROFILE: dev }
 
 services:
   examiner-db:
@@ -139,7 +140,9 @@ services:
         required: false
     environment:
       ENVIRONMENT: development
+      MOCK_AUTH: "true"
       LISTEN_ADDR: 0.0.0.0:13001
+      WEB_APP_ORIGINS: http://127.0.0.1:13003,http://localhost:13003
       EDB_DATABASE_URL: postgres://aapi:${EDB_AAPI_PASSWORD}@examiner-db:5432/examiner
     depends_on:
       migrate-edb-aapi: { condition: service_completed_successfully }

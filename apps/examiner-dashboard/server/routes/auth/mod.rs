@@ -24,7 +24,7 @@ pub mod google;
 
 pub const ALLOWED_EMAIL_DOMAIN: &str = "freecodecamp.org";
 const SESSION_TTL: Duration = Duration::from_secs(60 * 60);
-pub const SESSION_COOKIE: &str = "sid";
+pub const SESSION_COOKIE: &str = "examiner_sid";
 
 pub fn router(mock_auth: bool) -> Router<ServerState> {
     let router = Router::new()

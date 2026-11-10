@@ -7,6 +7,7 @@
 //! rolled back eDd or aAPI must still run against the newer schema.
 use std::{str::FromStr, time::Duration};
 
+use sha2::{Digest, Sha256};
 use sqlx::{
     ConnectOptions, PgPool,
     migrate::{MigrateError, Migrator},
@@ -17,7 +18,7 @@ mod aapi;
 mod edd;
 mod shared;
 
-pub use aapi::{Candidate, NewCandidate};
+pub use aapi::{Candidate, CandidateSession, NewCandidate};
 pub use edd::{
     InvalidObjectHash, NewObject, NewUser, Object, ObjectHash, ObjectKey, ObjectKeyLock, Session,
     User,
@@ -47,6 +48,10 @@ pub async fn migrate(url: &str) -> Result<(), MigrateError> {
         .connect()
         .await?;
     migrator().run(&mut conn).await
+}
+
+pub(crate) fn session_id_hash(session_id: &str) -> Vec<u8> {
+    Sha256::digest(session_id.as_bytes()).to_vec()
 }
 
 #[derive(Debug, Clone)]

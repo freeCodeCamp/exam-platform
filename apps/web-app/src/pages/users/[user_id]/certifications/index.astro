@@ -1,0 +1,13 @@
+---
+import Base from "@/layouts/base.astro";
+import { Certifications } from "@/views/certifications";
+import { PLACEHOLDER } from "@/utils/routes";
+
+export function getStaticPaths() {
+  return [{ params: { user_id: PLACEHOLDER } }];
+}
+---
+
+<Base title="Certifications">
+  <Certifications client:load />
+</Base>

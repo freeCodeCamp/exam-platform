@@ -1,8 +1,7 @@
-use sha2::{Digest, Sha256};
 use time::OffsetDateTime;
 use uuid::Uuid;
 
-use crate::Database;
+use crate::{Database, session_id_hash};
 
 #[derive(Debug, Clone)]
 pub struct Session {
@@ -12,17 +11,13 @@ pub struct Session {
     pub expires_at: OffsetDateTime,
 }
 
-fn hash(session_id: &str) -> Vec<u8> {
-    Sha256::digest(session_id.as_bytes()).to_vec()
-}
-
 impl Database {
     /// Also deletes expired sessions: Postgres has no TTL index, and reads skip them anyway.
     pub async fn insert_session(&self, session: &Session) -> Result<(), sqlx::Error> {
         sqlx::query!(
             "WITH expired AS (DELETE FROM edd.sessions WHERE expires_at <= now())
             INSERT INTO edd.sessions (id_hash, user_id, expires_at) VALUES ($1, $2, $3)",
-            hash(&session.session_id),
+            session_id_hash(&session.session_id),
             session.user_id,
             session.expires_at
         )
@@ -36,7 +31,7 @@ impl Database {
     pub async fn find_session(&self, session_id: &str) -> Result<Option<Session>, sqlx::Error> {
         let row = sqlx::query!(
             "SELECT user_id, expires_at FROM edd.sessions WHERE id_hash = $1 AND expires_at > now()",
-            hash(session_id)
+            session_id_hash(session_id)
         )
         .fetch_optional(&self.pool)
         .await?;
@@ -97,7 +92,7 @@ mod tests {
             .fetch_one(&pool)
             .await?;
 
-        assert_eq!(stored, hash("sid"));
+        assert_eq!(stored, session_id_hash("sid"));
         assert_eq!(
             db.find_session("sid").await?.map(|s| s.user_id),
             Some(user_id)

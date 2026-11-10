@@ -1,0 +1,13 @@
+---
+import Base from "@/layouts/base.astro";
+import { Profile } from "@/views/profile";
+import { PLACEHOLDER } from "@/utils/routes";
+
+export function getStaticPaths() {
+  return [{ params: { user_id: PLACEHOLDER } }];
+}
+---
+
+<Base title="Profile">
+  <Profile client:load />
+</Base>
