@@ -1,5 +1,15 @@
 # Contributing
 
+## Quick Start
+
+Ensure [Bun](https://bun.sh/) and [Docker](https://docs.docker.com/engine/install) are installed.
+
+```bash
+git clone https://github.com/freeCodeCamp/exam-platform.git
+cd exam-platform
+bun run dev all
+```
+
 ## First Time Setup
 
 ### Prerequisites
@@ -20,6 +30,17 @@ cargo install sqlx-cli --version 0.9.0 --locked --no-default-features --features
 cargo install mdbook@0.5.4 mdbook-mermaid@0.17.1 --locked # optional
 ```
 
+|                       | Rust | Bun | Docker | Tauri | mdbook |
+| --------------------- | :--: | :-: | :----: | :---: | :----: |
+| `auth-api`            |  ✅  |  X  |   X    |   X   |   X    |
+| `curriculum-database` |  ✅  |  X  |   ✅   |   X   |   X    |
+| `desktop-app`         |  ✅  | ✅  |   X    |  ✅   |   X    |
+| `examiner-dashboard`  |  ✅  | ✅  |   X    |   X   |   X    |
+| `examiner-database`   |  ✅  |  X  |   ✅   |   X   |   X    |
+| `web-app`             |  X   | ✅  |   X    |   X   |   X    |
+| `docs/`               |  X   |  X  |   X    |   X   |   ✅   |
+| `libs/`               |  ✅  |  X  |   X    |   X   |   X    |
+
 ### Clone
 
 ```bash
@@ -33,31 +54,7 @@ docker network create platform
 
 ### Environment
 
-Copy every example, then fill blanks:
-
-```bash
-for d in apps/auth-api apps/examiner-dashboard apps/web-app apps/desktop-app databases/examiner; do
-  cp -n "$d/.env.example" "$d/.env"
-done
-```
-
-`.env` is read automatically only by:
-
-| Reads `.env` automatically            | Does not                                  |
-| ------------------------------------- | ----------------------------------------- |
-| Bun (wApp, eDd client, dApp)          | `cargo run`, `cargo test`, `cargo clippy` |
-| Vite (dApp frontend)                  | rust-analyzer                             |
-| `docker compose` (from its directory) |                                           |
-| `sqlx-cli` (from its directory)       |                                           |
-
-Rust apps read only the process environment. Export the app's `.env` into the shell before `cargo`:
-
-```bash
-set -a; source apps/auth-api/.env; set +a
-cargo run -p auth-api
-```
-
-Or use [`direnv`](https://direnv.net/): `echo dotenv > .envrc && direnv allow` in each app directory, then run `cargo` from there. `.envrc` is not in `.gitignore`; do not commit it.
+Use [`direnv`](https://direnv.net/): `echo dotenv > .envrc && direnv allow` in each app directory, then run `cargo` from there. `.envrc` is not in `.gitignore`; do not commit it.
 
 | File                           | Set                                                                                                                                                         |
 | ------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -89,8 +86,6 @@ VS Code: install recommended extensions (`.vscode/extensions.json`). Settings ru
 
 #### Slices (Docker)
 
-`bun run dev <slice>...` builds and starts a slice and everything it depends on from `compose.dev.yaml`, attached like `docker compose up`: logs of the slice's own services follow, Ctrl-C stops the slice and its dependencies. `-d` runs it in the background like `docker compose up -d`: waits until healthy, then returns; stop with `bun run dev down`. No network setup and no `.env` export needed.
-
 | Slice  | Starts                                                              |
 | ------ | ------------------------------------------------------------------- |
 | `edb`  | eDb, migrated                                                       |
@@ -111,10 +106,6 @@ bun run dev reset        # stop, delete data volumes
 bun run dev compose ...  # any docker compose command on compose.dev.yaml
 ```
 
-- **Env.** Missing `databases/*/.env` are created from `.env.example` with random passwords. Apps need no `.env`: eDd is a debug build with `MOCK_AUTH=true`, so log in through `POST /auth/dev/login` and Google needs no credentials. An app `.env`, if present, is read (e.g. real `GOOGLE_*` or `RUST_LOG`), with database and S3 URLs overridden to in-network hosts.
-- **Rebuild.** Code changes need the slice run again (`--build`; eDd builds the `dev` profile). For client HMR, run `bun run dev:client` alongside `edd`: it proxies to the container on 13002.
-- **S3.** `s3.localhost` resolves to SeaweedFS inside the network and to loopback in the browser, so presigned URLs work from both. Dev-only keys: `dev/seaweedfs-s3.json`.
-
 #### Native
 
 | App        | Command                                         | Port              |
@@ -127,10 +118,6 @@ bun run dev compose ...  # any docker compose command on compose.dev.yaml
 | eDb        | `docker compose up -d` in `databases/examiner/` | `127.0.0.1:15432` |
 | Docs       | `mdbook watch` (or `mdbook serve`)              | `localhost:3000`  |
 
-`cargo run` rows need their `.env` exported first ([Environment](#environment)). `bun run dev:client` starts wApp and eDd client together. eDd client proxies `/api` to eDd server. wApp and dApp call aAPI at `AUTH_API_URL`.
-
-Images: `docker compose -f apps/<app>/compose.yaml up --build`. Build context is repo root.
-
 ### Workspaces
 
 | Workspace | Manifest                      | Members                                               |
@@ -141,69 +128,64 @@ Images: `docker compose -f apps/<app>/compose.yaml up --build`. Build context is
 
 Shared versions live in `package.json` catalogs: reference with `catalog:` or `catalog:astro`, do not pin in members.
 
-### Check
-
-CI (`.github/workflows/ci.yml`) runs only jobs whose paths changed. Run the same locally before pushing:
+### Tests
 
 ```bash
-# Root Cargo workspace (eDb running; source databases/examiner/.env for EDB_ADMIN_URL)
-cargo fmt --all --check
-cargo clippy --workspace --all-targets --locked
-cargo clippy -p runtime --no-default-features --all-targets --locked
-DATABASE_URL=$EDB_ADMIN_URL cargo test --workspace --locked
-
-# dApp backend
-cargo fmt --all --check --manifest-path apps/desktop-app/Cargo.toml
-cargo clippy --workspace --all-targets --locked --manifest-path apps/desktop-app/Cargo.toml
-cargo test --workspace --locked --manifest-path apps/desktop-app/Cargo.toml
-
-# Bun
-bun run check
-bun run build
-
-# Deploy Action (migration gate, rollback)
-(cd deploy && bun test)
+bun run dev -d edb cdb
+DATABASE_URL="$EDB_ADMIN_URL" cargo test
+bun run test
 ```
-
-Clippy `all` is `deny`. Format Rust with `rustfmt` (`rustfmt.toml`), eDd client with `bun --filter examiner-dashboard-client fmt` (oxfmt).
 
 ### Database Changes
 
-eDb schema, migrations and queries live in crate `edb` (`databases/examiner/`). Run every step from that directory with eDb up (`docker compose up -d --wait`). Only add, release, then remove: drop or rename only once no running or `previous` eDd or aAPI image uses the object. Never edit an applied migration.
+Never edit committed, applied migrations.
 
-`sqlx-cli` reads `EDB_MIGRATOR_URL` from its `.env`; `cargo` does not, so export it first.
-
-1. Create a reversible migration pair:
+Start the database(s):
 
 ```bash
-cargo sqlx migrate add -r -s <name> # migrations/NNNN_<name>.{up,down}.sql
+bun run dev -d edb cdb
 ```
 
-2. Write `up` and `down` SQL, naming the schema (`edd.users`; `shared` if both apps write the table, see [eDb schemas](./apps/examiner-database.md#schemas)), and grant each app role what it needs on new tables. `down` is for local development only; production never runs it.
-3. Apply it to local eDb:
+#### `eDb`
+
+Create a reversible migration:
 
 ```bash
-cargo run -p edb --bin edb-migrate # or: cargo sqlx migrate run
+cargo sqlx migrate add -r -s <name>
 ```
 
-To iterate on uncommitted migration: `cargo sqlx migrate revert`, make edits, then run it again.
-
-4. Add or change queries in `src/edd/`, `src/aapi/` or `src/shared/` (one module per table group, each an `impl Database` block of `query!`/`query_as!`). `SQLX_OFFLINE` is `true` in `.cargo/config.toml`, so `cargo check -p edb` checks them against committed `.sqlx/`, and fails on a new or changed query. To validate against local eDb, override it: `SQLX_OFFLINE=false cargo check -p edb`.
-5. Test with `#[sqlx::test(migrations = false)]`, calling `testing::setup` first: it bootstraps roles and schemas, then migrates as `edb_migrator`. Query through `testing::database_as` to run as the app's role. `#[sqlx::test]` reads `DATABASE_URL`, not `sqlx.toml`, and creates a database per test:
+Write generated `up` and `down` SQL, including schema names and app-role grants. Update queries and tests, then apply, refresh offline query metadata, and test:
 
 ```bash
-DATABASE_URL=$EDB_ADMIN_URL cargo test -p edb
-```
-
-6. Refresh offline query data:
-
-```bash
+cargo run -p edb --bin edb-migrate
 cargo sqlx prepare
+DATABASE_URL="$EDB_ADMIN_URL" cargo test -p edb
 ```
 
-The Husky pre-commit hook runs this and stages `.sqlx/` when eDb files are staged. This step never blocks the commit: if it warns with `cargo sqlx prepare failed; .sqlx/ may be stale`, manually run step 6.
+For local, uncommitted migration iteration, use `cargo sqlx migrate revert` before editing and reapplying.
 
-7. Commit migration, queries and `.sqlx/` together. Local (`.cargo/config.toml`), Docker and CI builds all use `SQLX_OFFLINE=true`. CI fails on a stale `.sqlx/`: offline clippy on a missing query, `cargo sqlx prepare --check` on one whose types changed.
+#### `cDb`
+
+Create a forward-only migration:
+
+```bash
+cargo sqlx migrate add -s <name>
+```
+
+Write generated SQL and update queries/tests, then apply and test:
+
+```bash
+cargo run -p cdb --bin cdb-migrate
+cargo test -p cdb
+```
+
+Use `cdb-migrate`, not `cargo sqlx migrate run`: it applies migrations on scratch branch, creates Dolt commits, then merges into `dev`. Other branches receive schema changes through merges from `dev`.
+
+`CDB_MIGRATOR_URL` must name the database, not a branch revision.
+
+#### Commit
+
+Commit migrations, queries, and tests together; include `.sqlx/` changes for eDb. Follow [database conventions](./conventions/databases.md).
 
 ### Commits and PRs
 
@@ -216,6 +198,6 @@ The Husky pre-commit hook runs this and stages `.sqlx/` when eDb files are stage
 | Part  | Values                                                                                             |
 | ----- | -------------------------------------------------------------------------------------------------- |
 | type  | `feat`, `fix`, `docs`, `chore`, `dev`, `refactor`. `feat` and `fix` trigger release; others do not |
-| scope | App or area: `aAPI`, `eDd`, `eDb`, `wApp`, `dApp`, `docs`, `.github`. Omit when repo-wide          |
+| scope | App or area: `aAPI`, `eDd`, `cDb`, `eDb`, `wApp`, `dApp`, `docs`, `.github`. Omit when repo-wide   |
 
 Follow [Database](./conventions/databases.md) and [Rust](./conventions/rust.md) conventions.
