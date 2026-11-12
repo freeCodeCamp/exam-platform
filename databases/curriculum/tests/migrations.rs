@@ -5,7 +5,7 @@ use std::borrow::Cow;
 use cdb::migrations::{self, DEV, Error, apply_on_scratch, drop_scratch, merge_into_dev, migrator};
 use common::TestDb;
 use sqlx::{
-    ConnectOptions, Connection,
+    Connection,
     migrate::{MigrateError, Migration, MigrationType, Migrator},
 };
 
@@ -21,7 +21,7 @@ impl TestDb {
     }
 
     pub async fn setup(&self) -> Result<Vec<i64>, Error> {
-        migrations::migrate(self.options.to_url_lossy().as_str()).await
+        self.migrate_with(&crate::migrator()).await
     }
 
     /// Runs `sql` on `dev` and commits it there, as eDd would.
