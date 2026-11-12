@@ -39,3 +39,15 @@ test("sends forbidden users to /login", async () => {
   await vi.waitFor(() => expect(redirect).toHaveBeenCalledWith("/login"));
   expect(screen.queryByText(/Author/)).not.toBeInTheDocument();
 });
+
+test("reuses the session when a page remounts", async () => {
+  mockSession(camperbot);
+  const firstPage = render(<Home />);
+  await firstPage.findByText(/Author/);
+
+  firstPage.unmount();
+  const nextPage = render(<Home />);
+  await nextPage.findByText(/Author/);
+
+  expect(fetch).toHaveBeenCalledTimes(1);
+});
