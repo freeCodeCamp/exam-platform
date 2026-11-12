@@ -1,5 +1,6 @@
 use std::str::FromStr;
 
+use crate::migrations::DEV;
 use sqlx::{ConnectOptions, Connection, Executor, MySqlConnection, mysql::MySqlConnectOptions};
 
 /// A database of its own on the Dolt server at `CDB_MIGRATOR_URL`, with branch `dev`.
@@ -30,12 +31,12 @@ impl TestDb {
         // The server's `init.defaultbranch` may not be `dev`.
         let mut conn = db.connect().await?;
         let has_dev: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM dolt_branches WHERE name = ?")
-            .bind("dev")
+            .bind(DEV)
             .fetch_one(&mut conn)
             .await?;
         if has_dev == 0 {
             sqlx::query("CALL DOLT_BRANCH(?)")
-                .bind("dev")
+                .bind(DEV)
                 .execute(&mut conn)
                 .await?;
         }
