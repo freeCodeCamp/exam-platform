@@ -33,7 +33,7 @@ Go to `Actions → Deploy → Run workflow`, with the app and `previous`, or wit
 
 ### Without GitHub
 
-aAPI and eDd: set `EXAM_PLATFORM_<APP>_MIGRATE_IMAGE` to the digest, run the stack's `migrate` service, and continue only if it exits 0. Then set `EXAM_PLATFORM_<APP>_IMAGE` in Komodo, and deploy the stack. Once it is healthy, set `_IMAGE_HEALTHY` to the same digest: the next failed deploy rolls back to it. Komodo runs Actions from the UI without arguments, so the Action cannot do this.
+Set `EXAM_PLATFORM_<APP>_MIGRATE_IMAGE` to target digest. Run `migrate`. For examiner-dashboard, then run `migrate-cdb`. Only then update `EXAM_PLATFORM_<APP>_IMAGE` and deploy. After health confirmation, record healthy-image variables. Failed migrations stop deployment; earlier successful migrations remain applied.
 
 ### Rollback Across Compose Changes
 

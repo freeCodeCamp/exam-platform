@@ -90,6 +90,15 @@ Until production moves to hosted Postgres, eDb runs as Komodo stack `exam-platfo
 
 Deploy the eDb stack by hand before the first aAPI and eDd deploys. The deploy Action does not touch it. `initdb/` creates the roles and schemas on an empty volume only: a volume from before `edb_migrator` existed has app-owned schemas and per-app migration tables, so delete it first. The deploy Action runs the image's `edb-migrate` before every backend deploy, so aAPI and eDd deploy in any order. `EXAM_PLATFORM_<APP>_MIGRATE_IMAGE` Variables are created by the Action.
 
+## Curriculum Database
+
+1. Generate root password with `openssl rand -hex 32`.
+2. Create secret `EXAM_PLATFORM_CURRICULUM_DB_ROOT_PASSWORD`.
+3. Create secret `EXAM_PLATFORM_CURRICULUM_DB_MIGRATOR_URL`: `mysql://root:<password>@curriculum-db:3306/curriculum`.
+4. Deploy `exam-platform-curriculum-db`.
+5. Create `curriculum` using SQL-shell instructions in `docs/apps/curriculum-database.md#once-off`.
+6. Deploy eDd only after both databases are ready.
+
 ## Komodo Log-In
 
 1. Open `https://exam-platform.freecodecamp.dev` and log in as `admin` with the password from `.env`. Change the password, then add a passkey or TOTP. Nobody can sign up: admins add users under Settings → Users, and each user adds 2FA at first login.

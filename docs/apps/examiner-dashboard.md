@@ -16,6 +16,7 @@ The Dockerfile builds `client/` with Bun, `server/` with cargo, and copies `dist
 `client/src/layouts/base.astro` is the HTML shell. Each `pages/*.astro` is routing only and mounts exactly one `views/*.tsx` React component, which wraps itself in `components/app-root.tsx` (React providers).
 
 ```bash
+# Use solution like direnv to have `.env` in env
 cp .env.example .env
 cargo run -p examiner-dashboard
 bun --filter examiner-dashboard-client dev

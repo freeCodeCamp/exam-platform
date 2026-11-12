@@ -28,6 +28,8 @@ Questions
 | `PLATFORM_NETWORK`          | no                  | `platform`      | `.env`                                                     | Shared external Docker network name.                                                                                                 |
 | `IMAGE`                     | no                  | empty           | `.env`, Komodo (`EXAM_PLATFORM_AUTH_API_IMAGE`)            | Release image to run. Empty builds from source. Komodo sets on deploys.                                                              |
 | `EDB_DATABASE_URL`          | yes                 |                 | `.env`, Komodo (`EXAM_PLATFORM_AUTH_API_EDB_DATABASE_URL`) | eDb Postgres URL as role `aapi`. No DDL: run `edb-migrate` first. Compose host `examiner-db`. Hosted: append `?sslmode=verify-full`. |
+| `COOKIE_KEY`                | yes                 |                 | `.env`, Komodo (`EXAM_PLATFORM_AUTH_API_COOKIE_KEY`)       | Session cookie secret. Minimum 64 bytes.                                                                                             |
+| `WEB_APP_ORIGINS`           | yes                 |                 | `.env`, Komodo (`EXAM_PLATFORM_AUTH_API_WEB_APP_ORIGINS`)  | Comma-separated browser origins. No trailing `/`.                                                                                    |
 
 ### `apps/examiner-dashboard`
 
@@ -100,6 +102,18 @@ Native dashboard execution needs exported environment variables; copying `.env` 
 | `CDB_PORT`          | no       | `13306`    | `.env`    | Host port on `127.0.0.1`. Container always listens on `3306`.                                      |
 | `PLATFORM_NETWORK`  | no       | `platform` | `.env`    | Shared external Docker network name.                                                               |
 
+### `databases/examiner`
+
+| Name                    | Required | Default    | Where Set | Description                                                        |
+| ----------------------- | -------- | ---------- | --------- | ------------------------------------------------------------------ |
+| `EDB_PASSWORD`          | yes      |            | `.env`    | PostgreSQL superuser `postgres` password. `openssl rand -hex 32`.  |
+| `EDB_MIGRATOR_PASSWORD` | yes      |            | `.env`    | PostgreSQL role `edb_migrator` password. `openssl rand -hex 32`.   |
+| `EDB_EDD_PASSWORD`      | yes      |            | `.env`    | Role `edd`: `openssl rand -hex 32`.                                |
+| `EDB_AAPI_PASSWORD`     | yes      |            | `.env`    | Role `aapi`: `openssl rand -hex 32`.                               |
+| `EDB_PORT`              | no       | `15432`    | `.env`    | Host port on `127.0.0.1`.                                          |
+| `PLATFORM_NETWORK`      | no       | `platform` | `.env`    | Shared external Docker network name.                               |
+| `EDB_ADMIN_URL`         | no       |            | `.env`    | Test administrator URL. Pass as `DATABASE_URL` for database tests. |
+
 ### `deploy/`
 
 Set in `deploy/.env` on the Droplet. `bootstrap.sh` copies `.env.example`, then fills each empty secret once with `openssl rand -hex 32`.
@@ -153,6 +167,7 @@ Dashboard, aAPI, eDb and cDb also require these Komodo Variables (no defaults):
 | `EXAM_PLATFORM_EXAMINER_DB_EDD_PASSWORD`                           | Secret; eDb stack passes it as `EDB_EDD_PASSWORD` (role `edd`, empty volume only).               |
 | `EXAM_PLATFORM_EXAMINER_DB_AAPI_PASSWORD`                          | Secret; eDb stack passes it as `EDB_AAPI_PASSWORD` (role `aapi`, empty volume only).             |
 | `EXAM_PLATFORM_AUTH_API_EDB_DATABASE_URL`                          | Secret; aAPI stack passes it as `EDB_DATABASE_URL`.                                              |
+| `EXAM_PLATFORM_AUTH_API_COOKIE_KEY`                                | Secret; Passed as `COOKIE_KEY`.                                                                  |
 | `EXAM_PLATFORM_CURRICULUM_DB_ROOT_PASSWORD`                        | Secret; cDb stack passes it as `CDB_ROOT_PASSWORD` (Dolt `root`, empty volume only).             |
 | `EXAM_PLATFORM_CURRICULUM_DB_MIGRATOR_URL`                         | Secret; eDd stack passes it as `CDB_MIGRATOR_URL` to its `migrate-cdb` service only.             |
 

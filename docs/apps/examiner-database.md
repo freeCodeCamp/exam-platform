@@ -59,7 +59,6 @@ cp .env.example .env   # set the four passwords, and the same in the two URLs
 docker compose up -d --wait
 set -a; source .env; set +a
 cargo run -p edb --bin edb-migrate
-git config core.hooksPath .githooks   # pre-commit refreshes and stages .sqlx/
 ```
 
 Start either app. `initdb/` should **only** be run on an empty volume. Changing or resetting: `docker compose down -v`, then the steps above.
