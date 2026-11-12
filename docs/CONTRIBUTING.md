@@ -120,11 +120,11 @@ bun run dev compose ...  # any docker compose command on compose.dev.yaml
 
 ### Workspaces
 
-| Workspace | Manifest                      | Members                                               |
-| --------- | ----------------------------- | ----------------------------------------------------- |
-| Cargo     | `Cargo.toml`                  | `auth-api`, `examiner-dashboard`, `edb`, `libs/*`     |
-| Cargo     | `apps/desktop-app/Cargo.toml` | dApp backend. Separate so servers never resolve Tauri |
-| Bun       | `package.json`                | `web-app`, `examiner-dashboard-client`, `desktop-app` |
+| Workspace | Manifest                      | Members                                                  |
+| --------- | ----------------------------- | -------------------------------------------------------- |
+| Cargo     | `Cargo.toml`                  | `auth-api`, `examiner-dashboard`, `edb`, `cdb`, `libs/*` |
+| Cargo     | `apps/desktop-app/Cargo.toml` | dApp backend. Separate so servers never resolve Tauri    |
+| Bun       | `package.json`                | `web-app`, `examiner-dashboard-client`, `desktop-app`    |
 
 Shared versions live in `package.json` catalogs: reference with `catalog:` or `catalog:astro`, do not pin in members.
 

@@ -11,7 +11,7 @@ Self-hosted [Dolt](https://www.dolthub.com/): exam content and its whole history
 | `src/bin/cdb-migrate.rs` | Migrator. Ships in eDd's image only; eDd's deploys run it (`migrate-cdb` service).                     |
 | Host port                | `127.0.0.1:13306`                                                                                      |
 
-Only `root` exists. App roles for `eDd` and `aAPI` are not set up yet: [roles](#roles-not-set-up).
+Only `root` exists. App roles for `eDd` and `aAPI` are not set up yet.
 
 ## Setup
 
