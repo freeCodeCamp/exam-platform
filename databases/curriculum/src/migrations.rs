@@ -59,7 +59,7 @@ pub async fn migrate(url: &str) -> Result<Vec<i64>, Error> {
 ///    on DDL, so a migration is never atomic: a failed one is left on the scratch branch only.
 /// 3. Merge into `dev`: a fast-forward unless `dev` moved meanwhile, then a merge commit.
 /// 4. Delete [`SCRATCH`].
-pub async fn migrate_with(
+pub(crate) async fn migrate_with(
     conn: &mut MySqlConnection,
     migrator: &Migrator,
 ) -> Result<Vec<i64>, Error> {
@@ -119,7 +119,7 @@ async fn checkout(conn: &mut MySqlConnection, branch: &'static str) -> Result<()
 }
 
 /// Steps 1 and 2 of [`migrate_with`]. Leaves [`SCRATCH`] checked out.
-pub async fn apply_on_scratch(
+pub(crate) async fn apply_on_scratch(
     conn: &mut MySqlConnection,
     migrator: &Migrator,
 ) -> Result<Vec<i64>, Error> {
@@ -180,7 +180,10 @@ pub async fn apply_on_scratch(
 }
 
 /// Step 3 of [`migrate_with`].
-pub async fn merge_into_dev(conn: &mut MySqlConnection, applied: &[i64]) -> Result<(), Error> {
+pub(crate) async fn merge_into_dev(
+    conn: &mut MySqlConnection,
+    applied: &[i64],
+) -> Result<(), Error> {
     let (first, last) = (applied[0], applied[applied.len() - 1]);
     checkout(conn, DEV).await?;
     // Fails, and rolls back, on conflicts: `dolt_allow_commit_conflicts` is off (config/server.yaml).
@@ -201,11 +204,266 @@ pub async fn merge_into_dev(conn: &mut MySqlConnection, applied: &[i64]) -> Resu
 }
 
 /// Step 4 of [`migrate_with`]. Leaves [`DEV`] checked out.
-pub async fn drop_scratch(conn: &mut MySqlConnection) -> Result<(), Error> {
+pub(crate) async fn drop_scratch(conn: &mut MySqlConnection) -> Result<(), Error> {
     checkout(conn, DEV).await?;
     sqlx::query("CALL DOLT_BRANCH('-D', ?)")
         .bind(SCRATCH)
         .execute(conn)
         .await?;
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use std::{borrow::Cow, str::FromStr};
+
+    use sqlx::{
+        ConnectOptions, Connection, Executor, MySqlConnection,
+        migrate::{MigrateError, Migration, MigrationType, Migrator},
+        mysql::MySqlConnectOptions,
+    };
+
+    use super::{DEV, Error, apply_on_scratch, drop_scratch, merge_into_dev, migrate, migrator};
+
+    pub struct TestDb {
+        name: String,
+        options: MySqlConnectOptions,
+    }
+
+    fn up_versions(migrator: &Migrator) -> Vec<i64> {
+        migrator
+            .iter()
+            .filter(|m| !m.migration_type.is_down_migration())
+            .map(|m| m.version)
+            .collect()
+    }
+
+    async fn apply_newer_migration(db: &TestDb) -> sqlx::Result<()> {
+        db.commit_on_dev(
+            "INSERT INTO _sqlx_migrations (version, description, success, checksum, execution_time)
+        VALUES (9999, 'from a newer release', true, X'00', 0)",
+        )
+        .await
+    }
+
+    fn migrator_with(sql: &'static str) -> Migrator {
+        let mut migrator = migrator();
+        migrator.migrations.to_mut().push(Migration::new(
+            9998,
+            Cow::Borrowed("added by a test"),
+            MigrationType::Simple,
+            sqlx::SqlStr::from_static(sql),
+            false,
+        ));
+        migrator
+    }
+
+    impl TestDb {
+        async fn new() -> sqlx::Result<Self> {
+            let Some(url) = std::env::var("CDB_MIGRATOR_URL")
+                .ok()
+                .filter(|v| !v.is_empty())
+            else {
+                panic!(
+                    "CDB_MIGRATOR_URL must be set for testing.  Hint: copy the value from .env.example into .env"
+                );
+            };
+            let options = MySqlConnectOptions::from_str(&url)?;
+            let name = format!("cdb_test_{}", uuid::Uuid::new_v4().simple());
+            let mut conn = options.connect().await?;
+            conn.execute(sqlx::AssertSqlSafe(format!("CREATE DATABASE `{name}`")))
+                .await?;
+            let db = Self {
+                options: options.database(&name),
+                name,
+            };
+            let mut conn = db.connect().await?;
+            let has_dev: i64 =
+                sqlx::query_scalar("SELECT COUNT(*) FROM dolt_branches WHERE name = ?")
+                    .bind(DEV)
+                    .fetch_one(&mut conn)
+                    .await?;
+            if has_dev == 0 {
+                sqlx::query("CALL DOLT_BRANCH(?)")
+                    .bind(DEV)
+                    .execute(&mut conn)
+                    .await?;
+            }
+            conn.close().await?;
+            Ok(db)
+        }
+
+        async fn connect(&self) -> sqlx::Result<MySqlConnection> {
+            self.options.connect().await
+        }
+
+        async fn destroy(self) -> sqlx::Result<()> {
+            let mut conn = self.connect().await?;
+            conn.execute(sqlx::AssertSqlSafe(format!(
+                "DROP DATABASE `{}`",
+                self.name
+            )))
+            .await?;
+            conn.close().await
+        }
+
+        async fn migrate_with(&self, migrator: &Migrator) -> Result<Vec<i64>, Error> {
+            let mut conn = self.connect().await?;
+            let result = super::migrate_with(&mut conn, migrator).await;
+            let _ = conn.close().await;
+            result
+        }
+
+        async fn setup(&self) -> Result<Vec<i64>, Error> {
+            let url = MySqlConnectOptions::to_url_lossy(&self.options);
+            migrate(url.as_str()).await
+        }
+
+        async fn commit_on_dev(&self, sql: &'static str) -> sqlx::Result<()> {
+            let mut conn = self.connect().await?;
+            sqlx::query("CALL DOLT_CHECKOUT(?)")
+                .bind(DEV)
+                .execute(&mut conn)
+                .await?;
+            sqlx::raw_sql(sql).execute(&mut conn).await?;
+            sqlx::query("CALL DOLT_COMMIT('-A', '-m', 'test: on dev')")
+                .execute(&mut conn)
+                .await?;
+            conn.close().await
+        }
+
+        async fn hash_of(&self, branch: &str) -> sqlx::Result<String> {
+            let mut conn = self.connect().await?;
+            let hash = sqlx::query_scalar("SELECT HASHOF(?)")
+                .bind(branch)
+                .fetch_one(&mut conn)
+                .await?;
+            conn.close().await?;
+            Ok(hash)
+        }
+
+        async fn applied_versions(&self) -> sqlx::Result<Vec<i64>> {
+            let mut conn = self.connect().await?;
+            let versions = sqlx::query_scalar(sqlx::AssertSqlSafe(format!(
+                "SELECT version FROM `{}/{DEV}`._sqlx_migrations WHERE success ORDER BY version",
+                self.name
+            )))
+            .fetch_all(&mut conn)
+            .await?;
+            conn.close().await?;
+            Ok(versions)
+        }
+    }
+
+    #[tokio::test]
+    async fn concurrent_runs_apply_each_migration_once() -> Result<(), Error> {
+        let db = TestDb::new().await?;
+        let migrator = migrator();
+
+        let (a, b) = tokio::join!(db.migrate_with(&migrator), db.migrate_with(&migrator));
+        let (mut a, b) = (a?, b?);
+
+        a.extend(b);
+        a.sort_unstable();
+        assert_eq!(a, up_versions(&migrator));
+        assert_eq!(db.applied_versions().await?, up_versions(&migrator));
+        Ok(db.destroy().await?)
+    }
+
+    #[tokio::test]
+    async fn strict_migrator_rejects_newer_migrations() -> Result<(), Error> {
+        let db = TestDb::new().await?;
+        db.setup().await?;
+        apply_newer_migration(&db).await?;
+        let mut migrator = migrator();
+        migrator.set_ignore_missing(false);
+
+        let result = db.migrate_with(&migrator).await;
+
+        assert!(
+            matches!(
+                result,
+                Err(Error::Migrate(MigrateError::VersionMissing(9999)))
+            ),
+            "{result:?}"
+        );
+        Ok(db.destroy().await?)
+    }
+
+    #[tokio::test]
+    async fn rejects_changed_migration() -> Result<(), Error> {
+        let db = TestDb::new().await?;
+        db.setup().await?;
+        db.commit_on_dev("UPDATE _sqlx_migrations SET checksum = X'00' WHERE version = 1")
+            .await?;
+
+        let result = db.migrate_with(&migrator()).await;
+
+        assert!(
+            matches!(
+                result,
+                Err(Error::Migrate(MigrateError::VersionMismatch(1)))
+            ),
+            "{result:?}"
+        );
+        Ok(db.destroy().await?)
+    }
+
+    #[tokio::test]
+    async fn failed_migration_leaves_dev_untouched() -> Result<(), Error> {
+        let db = TestDb::new().await?;
+        db.setup().await?;
+        let before = db.hash_of(DEV).await?;
+
+        let result = db
+            .migrate_with(&migrator_with(
+                "CREATE TABLE t (id int); CREATE TABLE t (id int);",
+            ))
+            .await;
+
+        assert!(result.is_err(), "{result:?}");
+        assert_eq!(db.hash_of(DEV).await?, before);
+        assert_eq!(
+            db.migrate_with(&migrator_with("CREATE TABLE t (id int)"))
+                .await?,
+            vec![9998]
+        );
+        Ok(db.destroy().await?)
+    }
+
+    #[tokio::test]
+    async fn merges_when_dev_moved() -> Result<(), Error> {
+        let db = TestDb::new().await?;
+        let migrator = migrator();
+        let mut conn = db.connect().await?;
+
+        let applied = apply_on_scratch(&mut conn, &migrator).await?;
+        db.commit_on_dev(
+            "CREATE TABLE content (id int PRIMARY KEY); INSERT INTO content VALUES (1)",
+        )
+        .await?;
+        merge_into_dev(&mut conn, &applied).await?;
+        drop_scratch(&mut conn).await?;
+
+        let message: String = sqlx::query_scalar("SELECT message FROM dolt_log(?) LIMIT 1")
+            .bind(DEV)
+            .fetch_one(&mut conn)
+            .await?;
+        let versions = up_versions(&migrator);
+        assert_eq!(
+            message,
+            format!(
+                "cdb-migrate: merge {:04}..{:04}",
+                versions[0],
+                versions[versions.len() - 1]
+            )
+        );
+        let content: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM content")
+            .fetch_one(&mut conn)
+            .await?;
+        assert_eq!(content, 1);
+        conn.close().await?;
+        assert_eq!(db.applied_versions().await?, up_versions(&migrator));
+        Ok(db.destroy().await?)
+    }
 }

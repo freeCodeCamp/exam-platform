@@ -1,27 +1,15 @@
 mod common;
 
-use std::borrow::Cow;
-
-use cdb::migrations::{self, DEV, Error, apply_on_scratch, drop_scratch, merge_into_dev, migrator};
+use cdb::migrations::{self, DEV, Error, migrator};
 use common::TestDb;
-use sqlx::{
-    Connection,
-    migrate::{MigrateError, Migration, MigrationType, Migrator},
-};
+use sqlx::{ConnectOptions, Connection, migrate::Migrator, mysql::MySqlConnectOptions};
 
 const SCRATCH: &str = "cdb-migrate";
 
 impl TestDb {
-    /// Runs `migrator` as `cdb-migrate` does, on a connection of its own.
-    pub async fn migrate_with(&self, migrator: &Migrator) -> Result<Vec<i64>, Error> {
-        let mut conn = self.connect().await?;
-        let result = migrations::migrate_with(&mut conn, migrator).await;
-        let _ = conn.close().await;
-        result
-    }
-
     pub async fn setup(&self) -> Result<Vec<i64>, Error> {
-        self.migrate_with(&crate::migrator()).await
+        let url = MySqlConnectOptions::to_url_lossy(&self.options);
+        migrations::migrate(url.as_str()).await
     }
 
     /// Runs `sql` on `dev` and commits it there, as eDd would.
@@ -69,19 +57,6 @@ pub fn up_versions(migrator: &Migrator) -> Vec<i64> {
         .filter(|m| !m.migration_type.is_down_migration())
         .map(|m| m.version)
         .collect()
-}
-
-/// [`migrator`] plus `sql` as migration 9998.
-fn migrator_with(sql: &'static str) -> Migrator {
-    let mut migrator = migrator();
-    migrator.migrations.to_mut().push(Migration::new(
-        9998,
-        Cow::Borrowed("added by a test"),
-        MigrationType::Simple,
-        sqlx::SqlStr::from_static(sql),
-        false,
-    ));
-    migrator
 }
 
 /// A newer release applied migration 9999 on `dev`, then rolled back to this release.
@@ -153,22 +128,6 @@ async fn rerun_is_a_no_op() -> Result<(), Error> {
     Ok(db.destroy().await?)
 }
 
-/// Two runs at once: the named lock serializes them.
-#[tokio::test]
-async fn concurrent_runs_apply_each_migration_once() -> Result<(), Error> {
-    let db = TestDb::new().await?.unwrap();
-    let migrator = migrator();
-
-    let (a, b) = tokio::join!(db.migrate_with(&migrator), db.migrate_with(&migrator));
-    let (mut a, b) = (a?, b?);
-
-    a.extend(b);
-    a.sort_unstable();
-    assert_eq!(a, up_versions(&migrator));
-    assert_eq!(db.applied_versions().await?, up_versions(&migrator));
-    Ok(db.destroy().await?)
-}
-
 #[tokio::test]
 async fn older_bundle_runs_against_newer_migrations() -> Result<(), Error> {
     let db = TestDb::new().await?.unwrap();
@@ -177,103 +136,6 @@ async fn older_bundle_runs_against_newer_migrations() -> Result<(), Error> {
 
     db.setup().await?;
 
-    Ok(db.destroy().await?)
-}
-
-#[tokio::test]
-async fn strict_migrator_rejects_newer_migrations() -> Result<(), Error> {
-    let db = TestDb::new().await?.unwrap();
-    db.setup().await?;
-    apply_newer_migration(&db).await?;
-    let mut migrator = migrator();
-    migrator.set_ignore_missing(false);
-
-    let result = db.migrate_with(&migrator).await;
-
-    assert!(
-        matches!(
-            result,
-            Err(Error::Migrate(MigrateError::VersionMissing(9999)))
-        ),
-        "{result:?}"
-    );
-    Ok(db.destroy().await?)
-}
-
-#[tokio::test]
-async fn rejects_changed_migration() -> Result<(), Error> {
-    let db = TestDb::new().await?.unwrap();
-    db.setup().await?;
-    db.commit_on_dev("UPDATE _sqlx_migrations SET checksum = X'00' WHERE version = 1")
-        .await?;
-
-    let result = db.migrate_with(&migrator()).await;
-
-    assert!(
-        matches!(
-            result,
-            Err(Error::Migrate(MigrateError::VersionMismatch(1)))
-        ),
-        "{result:?}"
-    );
-    Ok(db.destroy().await?)
-}
-
-/// The failed migration stays on the scratch branch, half applied; the next run starts over.
-#[tokio::test]
-async fn failed_migration_leaves_dev_untouched() -> Result<(), Error> {
-    let db = TestDb::new().await?.unwrap();
-    db.setup().await?;
-    let before = db.hash_of(DEV).await?;
-
-    let result = db
-        .migrate_with(&migrator_with(
-            "CREATE TABLE t (id int); CREATE TABLE t (id int);",
-        ))
-        .await;
-
-    assert!(result.is_err(), "{result:?}");
-    assert_eq!(db.hash_of(DEV).await?, before);
-    assert_eq!(
-        db.migrate_with(&migrator_with("CREATE TABLE t (id int)"))
-            .await?,
-        vec![9998]
-    );
-    Ok(db.destroy().await?)
-}
-
-/// eDd commits content to `dev` while migrations apply: the run ends in a merge commit with both.
-#[tokio::test]
-async fn merges_when_dev_moved() -> Result<(), Error> {
-    let db = TestDb::new().await?.unwrap();
-    let migrator = migrator();
-    let mut conn = db.connect().await?;
-
-    let applied = apply_on_scratch(&mut conn, &migrator).await?;
-    db.commit_on_dev("CREATE TABLE content (id int PRIMARY KEY); INSERT INTO content VALUES (1)")
-        .await?;
-    merge_into_dev(&mut conn, &applied).await?;
-    drop_scratch(&mut conn).await?;
-
-    let message: String = sqlx::query_scalar("SELECT message FROM dolt_log(?) LIMIT 1")
-        .bind(DEV)
-        .fetch_one(&mut conn)
-        .await?;
-    let versions = up_versions(&migrator);
-    assert_eq!(
-        message,
-        format!(
-            "cdb-migrate: merge {:04}..{:04}",
-            versions[0],
-            versions[versions.len() - 1]
-        )
-    );
-    let content: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM content")
-        .fetch_one(&mut conn)
-        .await?;
-    assert_eq!(content, 1);
-    conn.close().await?;
-    assert_eq!(db.applied_versions().await?, up_versions(&migrator));
     Ok(db.destroy().await?)
 }
 
