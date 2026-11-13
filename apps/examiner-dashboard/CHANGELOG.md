@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.6.0](https://github.com/freeCodeCamp/exam-platform/compare/examiner-dashboard-v0.5.0...examiner-dashboard-v0.6.0) (2026-11-13)
+
+
+### Features
+
+* **eDd:** add s3 object store + test page ([#38](https://github.com/freeCodeCamp/exam-platform/issues/38)) ([5355ada](https://github.com/freeCodeCamp/exam-platform/commit/5355adaa530c6c3dbe58efae2ad975e7837cb3f2))
+* wApp pages with aAPI session ([#43](https://github.com/freeCodeCamp/exam-platform/issues/43)) ([791f8ef](https://github.com/freeCodeCamp/exam-platform/commit/791f8efe5c84dae057387bf9ed67105349d8c7c4))
+
 ## [0.5.0](https://github.com/freeCodeCamp/exam-platform/compare/examiner-dashboard-v0.4.0...examiner-dashboard-v0.5.0) (2026-11-05)
 
 
