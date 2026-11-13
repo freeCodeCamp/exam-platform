@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.0](https://github.com/freeCodeCamp/exam-platform/compare/web-app-v0.3.0...web-app-v0.4.0) (2026-11-13)
+
+
+### Features
+
+* wApp pages with aAPI session ([#43](https://github.com/freeCodeCamp/exam-platform/issues/43)) ([791f8ef](https://github.com/freeCodeCamp/exam-platform/commit/791f8efe5c84dae057387bf9ed67105349d8c7c4))
+
 ## [0.3.0](https://github.com/freeCodeCamp/exam-platform/compare/web-app-v0.2.0...web-app-v0.3.0) (2026-11-04)
 
 
