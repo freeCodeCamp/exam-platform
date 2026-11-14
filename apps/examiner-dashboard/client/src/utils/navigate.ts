@@ -1,4 +1,5 @@
-// Full-page navigation, replacing the current history entry. Own module so tests can mock it:
+import { navigate } from "astro:transitions/client";
+
 export function redirect(path: string): void {
-  window.location.replace(path);
+  void navigate(path, { history: "replace" });
 }

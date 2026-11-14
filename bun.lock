@@ -38,6 +38,7 @@
         "@chakra-ui/react": "catalog:astro",
         "@dnd-kit/dom": "^0.5.1",
         "@dnd-kit/react": "^0.5.1",
+        "@emotion/cache": "11.14.0",
         "@emotion/react": "catalog:astro",
         "@tanstack/react-query": "catalog:",
         "astro": "catalog:astro",

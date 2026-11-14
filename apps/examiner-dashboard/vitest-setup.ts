@@ -1,5 +1,10 @@
 import "@testing-library/jest-dom/vitest";
-import { vi } from "vitest";
+import { afterEach, vi } from "vitest";
+import { queryClient } from "./client/src/utils/query-client.js";
+
+afterEach(() => {
+  queryClient.clear();
+});
 
 Object.defineProperty(window, "matchMedia", {
   writable: true,
